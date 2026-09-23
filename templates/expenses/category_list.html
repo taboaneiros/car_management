@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Categorias de Despesa - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Categorias de Despesa</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-tags me-2 text-primary"></i>Categorias de Despesa</h1>
+            <p class="text-muted small mb-0">Organize suas despesas por categoria.</p>
+        </div>
+        <a href="{% url 'expenses:category_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Nova Categoria</a>
+    </div>
+
+    <div class="cm-table-wrap">
+        <div class="cm-table-scroll">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th class="d-none d-sm-table-cell">Tipo</th>
+                        <th class="text-center d-none d-md-table-cell">Origem</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                    <tr>
+                        <td><span class="cm-chip"><i class="bi bi-tag"></i>{{ category.name }}</span></td>
+                        <td class="d-none d-sm-table-cell">
+                            {% if category.kind == "fixed" %}
+                            <span class="badge" style="background:var(--cm-primary-soft);color:var(--cm-primary)">Fixa</span>
+                            {% elif category.kind == "variable" %}
+                            <span class="badge" style="background:var(--cm-info-soft);color:var(--cm-info)">Variável</span>
+                            {% else %}
+                            <span class="badge" style="background:var(--cm-surface-2);color:var(--cm-text-muted)">Outra</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center d-none d-md-table-cell">
+                            {% if category.is_system %}
+                            <span class="badge" style="background:var(--cm-primary-soft);color:var(--cm-primary)">Sistema</span>
+                            {% else %}
+                            <span class="badge" style="background:var(--cm-surface-2);color:var(--cm-text)">Pessoal</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if category.is_active %}
+                            <i class="bi bi-check-circle-fill text-success" title="Ativa"></i>
+                            {% else %}
+                            <i class="bi bi-x-circle-fill text-danger" title="Inativa"></i>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">Nenhuma categoria cadastrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

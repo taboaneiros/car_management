@@ -1,0 +1,42 @@
+
+#Veículo
+
+"Nome do veículo","Ativo","Tipo de veículo","Marca","Modelo","Placa","Ano","Vol. do tanque(gal)","Odômetro (km)","Chassi","Renavam","Observação",
+"Citroen C3 XTR","Sim","Carro","Citroën","C3 XTR","EJK5495","2009","47.000","Quilômetros (km)","","00146193113","",
+
+#Abastecimento
+
+"Nome do veículo","Odômetro (km)","Data","Combustível",  "Preço / gal",  "Valor total",  "Volume","Completou o tanque","Segundo combustível","Preço / gal","Valor total","Volume","Completou o tanque 2","Terceiro combustível","Preço / gal","Valor total","Volume","Completou o tanque 3","Média","Média 2","Média 3","Tipo de recarga","Bateria inicial (%)","Bateria final (%)","Duração (min)","Posto de combustível","Motorista","Forma de pagamento","Motivo","Observação","(System Date)"
+"Citroen C3 XTR","95729","12/08/2026 17:00","Etanol","3.17","50","15.773","Não","","0","0","0","Não","","0","0","0","Não","","","","","0","0","0","Rede VP1000, Régis Bittencourt.","Carlos Eduardo","","","","12/08/2026 20:44"
+"Citroen C3 XTR","95566","01/08/2026 17:55","Etanol","3.22","96.6","30.000","Não","","0","0","0","Não","","0","0","0","Não","","","","","0","0","0","Rede VP1000, Régis Bittencourt.","Carlos Eduardo","","","","01/08/2026 20:56"
+"Citroen C3 XTR","95216","09/07/2026 19:38","Etanol","3.37","85.002","25.223","Não","","0","0","0","Não","","0","0","0","Não","","","","","0","0","","Rede VP1000, Régis Bittencourt.","Carlos Eduardo","","","Ido ao aeroporto GRU, buscar Leila e Cecília","09/07/2026 22:39"
+
+#Despesa
+
+"Nome do veículo","Odômetro (km)","Data","Valor total","Tipo de despesa","Local da despesa","Motorista","Forma de pagamento","Motivo","Observação","(System Date)"
+"Citroen C3 XTR","85127","22/05/2024 20:07","22.8","Conveniência Posto","Carrefour Comercio E Industria Ltda","Carlos Eduardo","Cartão de débito","Pessoal","Bardhal flex","22/05/2024 23:09"
+"Citroen C3 XTR","0","05/12/2019 11:24","6502","Financiamento","","","","Pessoal","Financiamento Santander Carro","05/05/2020 14:28"
+
+#Serviço
+
+"Nome do veículo","Odômetro (km)","Data","Valor total","Tipo de serviço","Local do serviço","Motorista","Forma de pagamento","Observação","(System Date)"
+"Citroen C3 XTR","93447","19/01/2026 21:48","28.98","Filtro de Ar","Timóteo Car","Carlos Eduardo","Dinheiro","","24/01/2026 13:00"
+"Citroen C3 XTR","93447","19/01/2026 21:48","17.58","Filtro de Ar da Cabine","Timóteo Car","Carlos Eduardo","Dinheiro","","24/01/2026 13:00"
+
+#Receita
+
+"Nome do veículo","Odômetro (km)","Data","Valor","Tipo de receita","Motorista","Observação","(System Date)"
+"Citroen C3 XTR","85127","22/05/2024 20:06","9.67","Desconto Combustível","Carlos Eduardo","+ desconto bardhal flex","22/05/2024 23:07"
+"Citroen C3 XTR","74648","23/04/2022 11:24","1.43","Desconto Combustível","","","17/05/2022 04:58"
+
+#Percurso
+
+"Nome do veículo","Data inicial","Data final","Odômetro inicial","Odômetro final","Distância (km)","Valor km","Total","Origem","Destino","Tipo de carga","Contratante","Quantidade","Unidade medida","Peso","Volume (m³)","Valor do frete","Motorista","Motivo","Observação","(System Date)"
+"Citroen C3 XTR","28/11/2021 17:30","28/11/2021 18:55","71686","71735","49","0","0","Posto Box4","Casa","","","","","","","","","Pessoal","Visita Maurício","28/11/2021 14:34"
+"Citroen C3 XTR","24/03/2020 15:46","24/03/2020 15:46","62242","62254","12","0.23","2.7600000000000002","Brau","Casa","","","","","","","","","Pessoal","","24/03/2020 18:48"
+
+#Lembrete
+
+"Nome do veículo","Tipo","Data","Odômetro (km)"
+"Citroen C3 XTR","Velas de Ignição","21/11/2023","125991"
+

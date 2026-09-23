@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir Despesa - Car Management{% endblock %}
+
+{% block breadcrumbs %}<a href="{% url 'expenses:list' %}">Despesas</a><span class="cm-breadcrumb-sep">/</span><span class="current">Excluir</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header text-white" style="background:var(--cm-danger)">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Confirmar Exclusão</h5>
+                </div>
+                <div class="card-body">
+                    <p>Tem certeza que deseja excluir a despesa de <strong>{{ object.vehicle.name }}</strong>?</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="cm-chip"><i class="bi bi-calendar"></i>{{ object.occurred_at|date:"d/m/Y" }}</span>
+                        <span class="cm-chip"><i class="bi bi-tag"></i>{{ object.category.name|default:"--" }}</span>
+                        <span class="cm-chip"><i class="bi bi-cash-stack"></i>R$ {{ object.amount|floatformat:2 }}</span>
+                    </div>
+                    {% if object.description %}<p class="text-muted small mt-2 mb-0">{{ object.description }}</p>{% endif %}
+                    <p class="text-danger small mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="card-footer d-flex justify-content-end gap-2">
+                    <a href="{% url 'expenses:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Cancelar</a>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Excluir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

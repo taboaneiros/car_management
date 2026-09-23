@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Veículos - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Veículos</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-truck me-2 text-primary"></i>Veículos</h1>
+            <p class="text-muted small mb-0">Gerencie os veículos da sua frota.</p>
+        </div>
+        <a href="{% url 'vehicles:create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Novo Veículo
+        </a>
+    </div>
+
+    {% if vehicles %}
+    <div class="row g-3">
+        {% for vehicle in vehicles %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card card-hover h-100">
+                <div class="cm-vehicle-photo">
+                    {% if vehicle.photo %}
+                    <img src="{{ vehicle.photo.url }}" alt="Foto do {{ vehicle.name }}">
+                    {% else %}
+                    <i class="bi bi-car-front"></i>
+                    {% endif %}
+                    <span class="cm-vehicle-status">
+                        {% if vehicle.is_active %}
+                        <span class="badge" style="background:var(--cm-success-soft);color:var(--cm-success)"><i class="bi bi-check-circle me-1"></i>Ativo</span>
+                        {% else %}
+                        <span class="badge" style="background:var(--cm-surface-2);color:var(--cm-text-muted)"><i class="bi bi-pause-circle me-1"></i>Inativo</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title mb-1">{{ vehicle.name }}</h5>
+                    <p class="text-muted small mb-3">{{ vehicle.brand }} {{ vehicle.model }} &middot; {{ vehicle.year|default:"--" }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="cm-chip"><i class="bi bi-truck"></i>{{ vehicle.get_vehicle_type_display }}</span>
+                        {% if vehicle.plate %}<span class="cm-chip"><i class="bi bi-credit-card-2-front"></i>{{ vehicle.plate }}</span>{% endif %}
+                        <span class="cm-chip"><i class="bi bi-speedometer2"></i>{{ vehicle.current_odometer_cache|default:"--" }} km</span>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group" aria-label="Ações do veículo">
+                        <a href="{% url 'vehicles:detail' vehicle.id %}" class="btn btn-outline-primary btn-sm" title="Ver detalhes"><i class="bi bi-eye me-1"></i>Ver</a>
+                        <a href="{% url 'vehicles:update' vehicle.id %}" class="btn btn-outline-secondary btn-sm" title="Editar"><i class="bi bi-pencil me-1"></i>Editar</a>
+                        <button type="button" class="btn btn-outline-danger btn-sm" title="Excluir" data-bs-toggle="modal" data-bs-target="#deleteModal{{ vehicle.id }}"><i class="bi bi-trash me-1"></i>Excluir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteModal{{ vehicle.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Confirmar Exclusão</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja excluir o veículo <strong>{{ vehicle.name }}</strong>?</p>
+                        <p class="text-danger small mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não pode ser desfeita.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <form method="post" action="{% url 'vehicles:delete' vehicle.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Excluir</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="cm-empty">
+            <div class="cm-empty-icon"><i class="bi bi-car-front"></i></div>
+            <h4 class="cm-empty-title">Nenhum veículo cadastrado</h4>
+            <p class="cm-empty-text">Cadastre seu primeiro veículo para começar a registrar abastecimentos e despesas.</p>
+            <a href="{% url 'vehicles:create' %}" class="btn btn-primary mt-2"><i class="bi bi-plus-circle me-2"></i>Cadastrar Veículo</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

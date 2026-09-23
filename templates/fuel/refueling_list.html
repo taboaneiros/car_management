@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Abastecimentos - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Abastecimentos</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-fuel-pump me-2 text-success"></i>Abastecimentos</h1>
+            <p class="text-muted small mb-0">Histórico completo de abastecimentos dos seus veículos.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'dashboard:export_refuelings_csv' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Exportar CSV
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-plus-circle me-1"></i>Novo Abastecimento
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="{% url 'fuel:create' %}"><i class="bi bi-car-front me-2"></i>Selecionar veículo...</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% for v in vehicles %}
+                    <li><a class="dropdown-item" href="{% url 'fuel:create' %}?vehicle={{ v.id }}"><i class="bi bi-fuel-pump me-2 text-success"></i>{{ v.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-end"
+                  hx-get="{% url 'fuel:list' %}"
+                  hx-target="#fuelTableCard"
+                  hx-select="#fuelTableCard"
+                  hx-swap="outerHTML"
+                  hx-trigger="change delay:350ms, submit">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold" for="f-vehicle">Veículo</label>
+                    <select name="vehicle" id="f-vehicle" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}" {% if request.GET.vehicle == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="f-start">Data Início</label>
+                    <input type="date" name="start_date" id="f-start" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="f-end">Data Fim</label>
+                    <input type="date" name="end_date" id="f-end" class="form-control form-control-sm" value="{{ request.GET.end_date }}">
+                </div>
+                <div class="col-12 col-md-5 d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                    <a href="{% url 'fuel:list' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-lg me-1"></i>Limpar</a>
+                    {% if page_obj %}
+                    <span class="ms-auto text-muted small"><i class="bi bi-database me-1"></i>{{ page_obj.paginator.count }} registro(s)</span>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if refuelings %}
+    <!-- Table Card (HTMX swap target) -->
+    <div id="fuelTableCard">
+        <div class="cm-table-wrap">
+            <div class="cm-table-scroll">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Data</th>
+                            <th>Veículo</th>
+                            <th class="text-end">Odômetro</th>
+                            <th class="text-end">Litros</th>
+                            <th class="text-end d-none d-md-table-cell">Preço/L</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center d-none d-md-table-cell" title="Tanque cheio"><i class="bi bi-droplet"></i></th>
+                            <th class="text-end d-none d-lg-table-cell">km/l</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for refueling in refuelings %}
+                        <tr>
+                            <td class="text-nowrap">{{ refueling.occurred_at|date:"d/m/Y" }}</td>
+                            <td>{{ refueling.vehicle.name }}</td>
+                            <td class="text-end">{{ refueling.odometer|default:"--" }}</td>
+                            <td class="text-end">{{ refueling.liters|floatformat:2 }}</td>
+                            <td class="text-end d-none d-md-table-cell">R$ {{ refueling.price_per_liter|floatformat:3 }}</td>
+                            <td class="text-end fw-semibold">R$ {{ refueling.total_amount|floatformat:2 }}</td>
+                            <td class="text-center d-none d-md-table-cell">
+                                {% if refueling.is_full_tank %}<i class="bi bi-check-circle-fill text-success" title="Tanque cheio"></i>
+                                {% else %}<i class="bi bi-dash-circle text-muted" title="Abastecimento parcial"></i>{% endif %}
+                            </td>
+                            <td class="text-end d-none d-lg-table-cell">{% if refueling.consumption_km_l %}{{ refueling.consumption_km_l|floatformat:1 }}{% else %}--{% endif %}</td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'fuel:update' refueling.id %}" class="btn btn-outline-secondary" aria-label="Editar abastecimento" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <button type="button" class="btn btn-outline-danger" aria-label="Excluir abastecimento" title="Excluir" data-bs-toggle="modal" data-bs-target="#deleteModal{{ refueling.id }}"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Delete Modal -->
+                        <div class="modal fade" id="deleteModal{{ refueling.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ refueling.id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-sm">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h6 class="modal-title" id="deleteModalLabel{{ refueling.id }}">Excluir abastecimento?</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="mb-0">Excluir o abastecimento de <strong>{{ refueling.vehicle.name }}</strong> em {{ refueling.occurred_at|date:"d/m/Y" }} (R$ {{ refueling.total_amount|floatformat:2 }})?</p>
+                                        <p class="text-danger small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não pode ser desfeita.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                        <form method="post" action="{% url 'fuel:delete' refueling.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Excluir</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">Nenhum abastecimento encontrado para os filtros selecionados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+            <span class="text-muted small">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            <nav aria-label="Paginação">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}"><i class="bi bi-chevron-left"></i></a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}"><i class="bi bi-chevron-right"></i></a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="cm-empty">
+            <div class="cm-empty-icon"><i class="bi bi-fuel-pump"></i></div>
+            <h4 class="cm-empty-title">Nenhum abastecimento registrado</h4>
+            <p class="cm-empty-text">Registre seu primeiro abastecimento para acompanhar consumo e gastos com combustível.</p>
+            <a href="{% url 'fuel:create' %}" class="btn btn-primary mt-2"><i class="bi bi-plus-circle me-2"></i>Novo Abastecimento</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

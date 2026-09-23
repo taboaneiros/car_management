@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Categoria - Car Management{% endblock %}
+
+{% block breadcrumbs %}<a href="{% url 'expenses:category_list' %}">Categorias</a><span class="cm-breadcrumb-sep">/</span><span class="current">{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Categoria</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-tag me-2 text-primary"></i>{% if form.instance.pk %}Editar Categoria{% else %}Nova Categoria{% endif %}</h1>
+        <a href="{% url 'expenses:category_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <a href="{% url 'expenses:category_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

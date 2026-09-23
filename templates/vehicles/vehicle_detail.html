@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vehicle.name }} - Car Management{% endblock %}
+
+{% block breadcrumbs %}<a href="{% url 'vehicles:list' %}">Veículos</a><span class="cm-breadcrumb-sep">/</span><span class="current">{{ vehicle.name }}</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="cm-avatar-lg"><i class="bi bi-car-front"></i></div>
+            <div>
+                <h1 class="h3 mb-0">{{ vehicle.name }}</h1>
+                <p class="text-muted small mb-0">{{ vehicle.brand }} {{ vehicle.model }}
+                    {% if vehicle.year %} &middot; {{ vehicle.year }}{% endif %}
+                    {% if vehicle.plate %} &middot; <span class="fw-semibold">{{ vehicle.plate }}</span>{% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'vehicles:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+            <a href="{% url 'vehicles:update' vehicle.id %}" class="btn btn-soft"><i class="bi bi-pencil me-1"></i>Editar</a>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash me-1"></i>Excluir</button>
+        </div>
+    </div>
+
+    <!-- Status badge row -->
+    <div class="mb-4">
+        {% if vehicle.is_active %}
+        <span class="badge" style="background:var(--cm-success-soft);color:var(--cm-success)"><i class="bi bi-check-circle me-1"></i>Ativo</span>
+        {% else %}
+        <span class="badge" style="background:var(--cm-surface-2);color:var(--cm-text-muted)"><i class="bi bi-pause-circle me-1"></i>Inativo</span>
+        {% endif %}
+        <span class="cm-chip"><i class="bi bi-truck"></i>{{ vehicle.get_vehicle_type_display }}</span>
+        <span class="cm-chip"><i class="bi bi-fuel-pump"></i>{{ vehicle.get_fuel_control_type_display }}</span>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Info Card -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="card-title mb-0">Informações</h5></div>
+                <div class="card-body">
+                    {% if vehicle.photo %}
+                    <div class="text-center mb-3">
+                        <img src="{{ vehicle.photo.url }}" alt="Foto do {{ vehicle.name }}" class="img-fluid rounded-4" style="max-height: 200px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+                    <dl class="row mb-0 g-2">
+                        <dt class="col-5 text-muted small">Marca</dt><dd class="col-7">{{ vehicle.brand }}</dd>
+                        <dt class="col-5 text-muted small">Modelo</dt><dd class="col-7">{{ vehicle.model }}</dd>
+                        {% if vehicle.version %}<dt class="col-5 text-muted small">Versão</dt><dd class="col-7">{{ vehicle.version }}</dd>{% endif %}
+                        <dt class="col-5 text-muted small">Ano</dt><dd class="col-7">{{ vehicle.year }}</dd>
+                        {% if vehicle.plate %}<dt class="col-5 text-muted small">Placa</dt><dd class="col-7">{{ vehicle.plate }}</dd>{% endif %}
+                        {% if vehicle.color %}<dt class="col-5 text-muted small">Cor</dt><dd class="col-7">{{ vehicle.color }}</dd>{% endif %}
+                        <dt class="col-5 text-muted small">Odômetro inicial</dt><dd class="col-7">{{ vehicle.initial_odometer }} km</dd>
+                        <dt class="col-5 text-muted small">Odômetro atual</dt><dd class="col-7 fw-semibold">{{ vehicle.current_odometer_cache }} km</dd>
+                        {% if vehicle.notes %}<dt class="col-5 text-muted small">Observações</dt><dd class="col-7">{{ vehicle.notes|truncatechars:80 }}</dd>{% endif %}
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <!-- Recent Refuelings -->
+            <div class="card mb-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-fuel-pump me-2 text-success"></i>Últimos Abastecimentos</h5>
+                    <a href="{% url 'fuel:list' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-soft">Ver todos</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th class="text-end">Odômetro</th>
+                                    <th class="text-end">Litros</th>
+                                    <th class="text-end d-none d-sm-table-cell">Preço/L</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in recent_refuelings %}
+                                <tr>
+                                    <td class="text-nowrap">{{ r.occurred_at|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ r.odometer }}</td>
+                                    <td class="text-end">{{ r.liters|floatformat:1 }}</td>
+                                    <td class="text-end d-none d-sm-table-cell">R$ {{ r.price_per_liter|floatformat:3 }}</td>
+                                    <td class="text-end fw-semibold">R$ {{ r.total_amount|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center text-muted py-4">Nenhum abastecimento registrado.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Expenses -->
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-cash-stack me-2 text-warning"></i>Últimas Despesas</h5>
+                    <a href="{% url 'expenses:list' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-soft">Ver todas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th class="d-none d-md-table-cell">Categoria</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in recent_expenses %}
+                                <tr>
+                                    <td class="text-nowrap">{{ expense.occurred_at|date:"d/m/Y" }}</td>
+                                    <td>{{ expense.description|default:"--"|truncatechars:30 }}</td>
+                                    <td class="d-none d-md-table-cell">{% if expense.category %}<span class="cm-chip"><i class="bi bi-tag"></i>{{ expense.category.name }}</span>{% else %}--{% endif %}</td>
+                                    <td class="text-end fw-semibold">R$ {{ expense.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma despesa registrada.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o veículo <strong>{{ vehicle.name }}</strong>?</p>
+                <p class="text-danger small mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'vehicles:delete' vehicle.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Importar do Drivvo - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Importar Drivvo</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-cloud-arrow-up me-2 text-primary"></i>Importar dados do Drivvo</h1>
+        <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <!-- Instructions -->
+            <div class="card mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2 text-info"></i>Instruções</h5>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#importHelp">
+                        <i class="bi bi-chevron-down"></i> <span class="d-none d-sm-inline">Como funciona</span>
+                    </button>
+                </div>
+                <div class="collapse show" id="importHelp">
+                    <div class="card-body pt-0">
+                        <ul class="mb-0 text-muted small">
+                            <li>No app Drivvo, exporte seus dados no formato CSV.</li>
+                            <li>Seções suportadas: <span class="cm-chip"><i class="bi bi-truck"></i>Veículo</span> <span class="cm-chip"><i class="bi bi-fuel-pump"></i>Abastecimento</span> <span class="cm-chip"><i class="bi bi-cash-stack"></i>Despesa</span></li>
+                            <li>Seções como <em>Serviço</em>, <em>Receita</em>, <em>Percurso</em> e <em>Lembrete</em> são ignoradas sem quebrar a importação.</li>
+                            <li>Datas no formato <code>DD/MM/AAAA HH:MM</code> e números com separador decimal <code>.</code> ou <code>,</code> são aceitos.</li>
+                            <li>Registros já importados são ignorados automaticamente (sem duplicar).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Card -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" data-dropzone-form>
+                        {% csrf_token %}
+                        <div class="cm-dropzone" data-dropzone tabindex="0" role="button" aria-label="Enviar arquivo CSV">
+                            <div class="cm-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                            <h5 class="mt-2 mb-1">Arraste o arquivo CSV aqui</h5>
+                            <p class="text-muted small mb-0">ou clique para selecionar &middot; máx. 10 MB</p>
+                            <input type="file" class="d-none" id="csv_file" name="csv_file" accept=".csv,text/csv" required>
+                        </div>
+                        <div id="cmFileFeedback" class="mt-2 mb-0" role="status" aria-live="polite"></div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'dashboard:home' %}" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-cloud-arrow-down me-1"></i>Importar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const zone = document.querySelector('[data-dropzone]');
+    const input = document.querySelector('#csv_file');
+    const feedback = document.querySelector('#cmFileFeedback');
+    const form = document.querySelector('[data-dropzone-form]');
+    if (!zone || !input) return;
+
+    function humanSize(bytes) {
+        if (!bytes) return '0 B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    input.addEventListener('change', function () {
+        const file = input.files[0];
+        if (!file) { feedback.innerHTML = ''; return; }
+        const isCsv = /^.*\.csv$/i.test(file.name);
+        const okSize = file.size <= 10 * 1024 * 1024;
+        if (isCsv && okSize) {
+            zone.querySelector('.cm-dropzone-icon').innerHTML = '<i class="bi bi-file-earmark-check"></i>';
+            feedback.innerHTML = '<div class="alert alert-success py-2 small mb-0"><i class="bi bi-check-circle me-1"></i><strong>' +
+                file.name + '</strong> (' + humanSize(file.size) + ') pronto para importar.</div>';
+        } else {
+            feedback.innerHTML = '<div class="alert alert-danger py-2 small mb-0"><i class="bi bi-exclamation-circle me-1"></i>' +
+                (isCsv ? 'O arquivo excede o limite de 10 MB.' : 'Formato inválido. Envie um arquivo .csv.') + '</div>';
+            form.reset();
+        }
+    });
+});
+</script>
+{% endblock %}

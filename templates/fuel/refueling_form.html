@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form.instance.pk|yesno:"Editar,Novo" }} Abastecimento - Car Management{% endblock %}
+
+{% block breadcrumbs %}<a href="{% url 'fuel:list' %}">Abastecimentos</a><span class="cm-breadcrumb-sep">/</span><span class="current">{{ form.instance.pk|yesno:"Editar,Novo" }} Abastecimento</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-fuel-pump me-2 text-success"></i>{{ form.instance.pk|yesno:"Editar Abastecimento,Novo Abastecimento" }}</h1>
+        <a href="{% url 'fuel:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9">
+            <div class="card">
+                <div class="card-header"><h5 class="card-title mb-0"><i class="bi bi-droplet me-2 text-success"></i>Dados do abastecimento</h5></div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div id="cmAutoCalcHint" class="alert alert-info d-flex align-items-center gap-2 py-2 small mt-2 mb-0" role="status">
+                            <i class="bi bi-calculator"></i>
+                            <span>O campo <strong>Total</strong> é calculado automaticamente (Litros × Preço/L).</span>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a href="{% url 'fuel:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const litersInput = document.querySelector('input[name="liters"]');
+    const totalAmountInput = document.querySelector('input[name="total_amount"]');
+    const pricePerLiterInput = document.querySelector('input[name="price_per_liter"]');
+
+    if (totalAmountInput) {
+        totalAmountInput.setAttribute('readonly', 'readonly');
+        totalAmountInput.setAttribute('tabindex', '-1');
+    }
+
+    function setTotal() {
+        const liters = parseFloat(litersInput?.value) || 0;
+        const price = parseFloat(pricePerLiterInput?.value) || 0;
+        if (totalAmountInput) {
+            totalAmountInput.value = (liters * price).toFixed(2);
+        }
+    }
+
+    function setPrice() {
+        const liters = parseFloat(litersInput?.value) || 0;
+        const total = parseFloat(totalAmountInput?.value) || 0;
+        if (liters > 0 && total > 0 && pricePerLiterInput) {
+            pricePerLiterInput.value = (total / liters).toFixed(4);
+        }
+    }
+
+    litersInput?.addEventListener('input', () => {
+        if (pricePerLiterInput?.value) setTotal();
+    });
+    pricePerLiterInput?.addEventListener('input', setTotal);
+
+    setTotal();
+});
+</script>
+{% endblock %}

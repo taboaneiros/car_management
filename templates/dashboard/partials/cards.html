@@ -1,0 +1,87 @@
+{% load l10n %}
+<!-- Primary KPI cards -->
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover cm-stat h-100">
+            <div class="d-flex align-items-center gap-3">
+                <div class="cm-stat-icon"><i class="bi bi-wallet2"></i></div>
+                <div class="flex-grow-1">
+                    <div class="cm-stat-label">Gasto Mensal</div>
+                    <div class="cm-stat-value" data-countup="{{ month_summary.total_spent|floatformat:2|unlocalize }}" data-decimals="2" data-prefix="R$ ">R$ {{ month_summary.total_spent|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover cm-stat h-100" style="--cm-stat-color: var(--cm-success); --cm-stat-soft: var(--cm-success-soft); --cm-stat-tint: rgba(var(--cm-success-rgb), .13);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="cm-stat-icon"><i class="bi bi-fuel-pump"></i></div>
+                <div class="flex-grow-1">
+                    <div class="cm-stat-label">Combustível</div>
+                    <div class="cm-stat-value" data-countup="{{ month_summary.fuel_total|floatformat:2|unlocalize }}" data-decimals="2" data-prefix="R$ ">R$ {{ month_summary.fuel_total|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover cm-stat h-100" style="--cm-stat-color: var(--cm-warning); --cm-stat-soft: var(--cm-warning-soft); --cm-stat-tint: rgba(var(--cm-warning-rgb), .13);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="cm-stat-icon"><i class="bi bi-cash-stack"></i></div>
+                <div class="flex-grow-1">
+                    <div class="cm-stat-label">Despesas</div>
+                    <div class="cm-stat-value" data-countup="{{ month_summary.expenses_total|floatformat:2|unlocalize }}" data-decimals="2" data-prefix="R$ ">R$ {{ month_summary.expenses_total|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-hover cm-stat h-100" style="--cm-stat-color: var(--cm-info); --cm-stat-soft: var(--cm-info-soft); --cm-stat-tint: rgba(var(--cm-info-rgb), .13);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="cm-stat-icon"><i class="bi bi-calendar3"></i></div>
+                <div class="flex-grow-1">
+                    <div class="cm-stat-label">Gasto Anual</div>
+                    <div class="cm-stat-value" data-countup="{{ year_summary.total_spent|floatformat:2|unlocalize }}" data-decimals="2" data-prefix="R$ ">R$ {{ year_summary.total_spent|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary mini stats -->
+<div class="row g-3">
+    <div class="col-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <span class="text-muted small fw-semibold">Abastecimentos (mês)</span>
+                <span class="badge" style="background:var(--cm-primary-soft);color:var(--cm-primary)">{{ month_summary.refuelings_count }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <span class="text-muted small fw-semibold">Litros (mês)</span>
+                <span class="badge" style="background:var(--cm-success-soft);color:var(--cm-success)">{{ month_summary.total_liters|floatformat:1 }} L</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <span class="text-muted small fw-semibold">Despesas (mês)</span>
+                <span class="badge" style="background:var(--cm-warning-soft);color:var(--cm-warning)">{{ month_summary.expenses_count }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <span class="text-muted small fw-semibold">Combustível (ano)</span>
+                <span class="badge" style="background:var(--cm-info-soft);color:var(--cm-info)">R$ {{ year_summary.fuel_total|floatformat:0 }}</span>
+            </div>
+        </div>
+    </div>
+</div>

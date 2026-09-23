@@ -1,0 +1,23 @@
+# Django and core dependencies
+Django>=5.0,<6.0
+django-environ>=0.11.0
+
+# Authentication
+django-allauth>=0.60.0
+fido2>=1.0.0
+
+# Forms and UI
+django-crispy-forms>=2.0
+crispy-bootstrap5>=0.7
+
+# HTMX support
+django-htmx>=1.17.0
+
+# API
+djangorestframework>=3.14
+
+# Image processing
+Pillow>=10.0
+
+# Utilities
+python-dateutil>=2.8

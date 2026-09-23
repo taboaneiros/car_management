@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% load l10n %}
+
+{% block title %}Dashboard - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Dashboard</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h1>
+            <p class="text-muted small mb-0">Visão geral dos seus gastos e consumo.</p>
+        </div>
+        {% if active_vehicle %}
+        <div class="d-flex align-items-center gap-2">
+            <span class="cm-chip"><i class="bi bi-car-front"></i>{{ active_vehicle.name }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Vehicle Selector -->
+    {% if vehicles.count > 1 %}
+    <div class="mb-4">
+        <label class="form-label small fw-semibold">Veículo ativo</label>
+        <div class="cm-switcher" role="group" aria-label="Selecionar veículo ativo">
+            {% for v in vehicles %}
+            <a href="{% url 'dashboard:set_active_vehicle' v.id %}"
+               class="cm-switch-item {% if active_vehicle and active_vehicle.id == v.id %}active{% endif %}"
+               hx-get="{% url 'dashboard:set_active_vehicle' v.id %}"
+               hx-target="#dashboard-cards"
+               hx-swap="innerHTML">
+                <i class="bi bi-car-front"></i><span>{{ v.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Vehicles -->
+    {% if not vehicles.exists %}
+    <div class="card">
+        <div class="cm-empty">
+            <div class="cm-empty-icon"><i class="bi bi-car-front"></i></div>
+            <h4 class="cm-empty-title">Bem-vindo ao Car Management!</h4>
+            <p class="cm-empty-text">Cadastre seu primeiro veículo para começar a registrar abastecimentos, despesas e acompanhar seus gastos.</p>
+            <a href="{% url 'vehicles:create' %}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle me-2"></i>Cadastrar Veículo
+            </a>
+        </div>
+    </div>
+    {% else %}
+
+    <!-- Summary cards (HTMX target) -->
+    <div id="dashboard-cards" class="mb-4">
+        {% include "dashboard/partials/cards.html" %}
+    </div>
+
+    {% if active_vehicle and vehicle_stats %}
+    <!-- Vehicle stats + monthly chart -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-car-front me-2 text-primary"></i>{{ active_vehicle.name }}</h5>
+                    <span class="badge" style="background:var(--cm-primary-soft);color:var(--cm-primary)">{{ active_vehicle.get_vehicle_type_display }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="cm-stat-label">Odômetro</div>
+                            <div class="cm-stat-value fs-5" data-countup="{{ vehicle_stats.odometer }}" data-suffix=" km">{{ vehicle_stats.odometer|default:"--" }} km</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="cm-stat-label">Média de Consumo</div>
+                            <div class="cm-stat-value fs-5">
+                                {% if vehicle_stats.avg_consumption %}
+                                <span data-countup="{{ vehicle_stats.avg_consumption|floatformat:1|unlocalize }}" data-decimals="1" data-suffix=" km/l">{{ vehicle_stats.avg_consumption|floatformat:1 }} km/l</span>
+                                {% else %}--{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="cm-stat-label">Abastecimentos</div>
+                            <div class="cm-stat-value fs-5" data-countup="{{ vehicle_stats.refuelings_count }}">{{ vehicle_stats.refuelings_count }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="cm-stat-label">Despesas</div>
+                            <div class="cm-stat-value fs-5" data-countup="{{ vehicle_stats.expenses_count }}">{{ vehicle_stats.expenses_count }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="{% url 'vehicles:detail' active_vehicle.id %}" class="btn btn-sm btn-soft"><i class="bi bi-eye me-1"></i>Ver detalhes</a>
+                    <a href="{% url 'vehicles:update' active_vehicle.id %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Editar</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Custos Mensais</h5>
+                    <span class="text-muted small">Últimos 6 meses</span>
+                </div>
+                <div class="card-body">
+                    <div class="cm-chart-wrap" id="monthlyChartWrap">
+                        <canvas id="monthlyCostsChart" aria-label="Gráfico de custos mensais" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category chart + recent activity -->
+    <div class="row g-3">
+        <div class="col-xl-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-pie-chart me-2 text-primary"></i>Por Categoria</h5>
+                    <a href="{% url 'expenses:list' %}" class="btn btn-sm btn-soft">Ver</a>
+                </div>
+                <div class="card-body">
+                    <div class="cm-chart-sm" id="categoryChartWrap">
+                        <canvas id="categoryChart" aria-label="Gráfico de despesas por categoria" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-fuel-pump me-2 text-success"></i>Últimos Abastecimentos</h5>
+                    <a href="{% url 'fuel:list' %}" class="btn btn-sm btn-soft">Ver todos</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th class="text-end">Litros</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center" title="Tanque cheio"><i class="bi bi-droplet"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in recent_refuelings %}
+                                <tr>
+                                    <td class="text-nowrap">{{ r.occurred_at|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ r.liters|floatformat:1 }}</td>
+                                    <td class="text-end fw-semibold">R$ {{ r.total_amount|floatformat:2 }}</td>
+                                    <td class="text-center">
+                                        {% if r.is_full_tank %}<i class="bi bi-check-circle-fill text-success" title="Tanque cheio"></i>
+                                        {% else %}<i class="bi bi-dash-circle text-muted" title="Abastecimento parcial"></i>{% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">Nenhum abastecimento registrado.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-cash-stack me-2 text-warning"></i>Últimas Despesas</h5>
+                    <a href="{% url 'expenses:list' %}" class="btn btn-sm btn-soft">Ver todas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in recent_expenses %}
+                                <tr>
+                                    <td class="text-nowrap">{{ expense.occurred_at|date:"d/m/Y" }}</td>
+                                    <td>{{ expense.description|default:"--"|truncatechars:24 }}
+                                        {% if expense.category %}<div class="text-muted small">{{ expense.category.name }}</div>{% endif %}
+                                    </td>
+                                    <td class="text-end fw-semibold">R$ {{ expense.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted py-4">Nenhuma despesa registrada.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    if (typeof Chart === "undefined") return;
+
+    const css = (name) => (getComputedStyle(document.documentElement).getPropertyValue(name) || "").trim();
+    const primary = css("--cm-primary") || "#2563eb";
+    const success = css("--cm-success") || "#16a34a";
+    const warning = css("--cm-warning") || "#d97706";
+    const danger = css("--cm-danger") || "#dc2626";
+    const info = css("--cm-info") || "#0284c7";
+    const muted = css("--cm-text-muted") || "#64748b";
+    const grid = css("--cm-border") || "#e2e8f0";
+    const font = css("--cm-font-sans") || "Inter, sans-serif";
+
+    Chart.defaults.font.family = font;
+    Chart.defaults.color = muted;
+    Chart.defaults.plugins.tooltip.backgroundColor = "rgba(15, 23, 42, 0.92)";
+
+    const brl = (v) => "R$ " + (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function emptyState(wrapId, message) {
+        const wrap = document.getElementById(wrapId);
+        if (!wrap) return;
+        wrap.innerHTML = '<div class="cm-empty" style="height:100%">' +
+            '<div class="cm-empty-icon"><i class="bi bi-graph-up-arrow"></i></div>' +
+            '<div class="cm-empty-title">Sem dados</div>' +
+            '<div class="cm-empty-text">' + message + '</div></div>';
+    }
+
+    // Monthly costs chart
+    const monthlyCtx = document.getElementById("monthlyCostsChart");
+    if (monthlyCtx) {
+        const monthlyData = {{ monthly_costs|safe }};
+        const hasData = monthlyData.some((d) => d.total > 0);
+        if (!hasData) {
+            emptyState("monthlyChartWrap", "Registre abastecimentos ou despesas para ver o gráfico.");
+        } else {
+            new Chart(monthlyCtx, {
+                type: "bar",
+                data: {
+                    labels: monthlyData.map((d) => d.month),
+                    datasets: [
+                        { label: "Combustível", data: monthlyData.map((d) => d.fuel), backgroundColor: primary, borderRadius: 6, maxBarThickness: 26 },
+                        { label: "Despesas", data: monthlyData.map((d) => d.expenses), backgroundColor: warning, borderRadius: 6, maxBarThickness: 26 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 700, easing: "easeOutQuart" },
+                    plugins: {
+                        legend: { labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: { callbacks: { label: (ctx) => " " + ctx.dataset.label + ": " + brl(ctx.parsed.y) } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { weight: 600 } } },
+                        y: { beginAtZero: true, grid: { color: grid }, ticks: { callback: (v) => brl(v).replace(",00", "") } }
+                    }
+                }
+            });
+        }
+    }
+
+    // Category doughnut chart
+    const categoryCtx = document.getElementById("categoryChart");
+    if (categoryCtx) {
+        const categoryData = {{ categories_breakdown|safe }};
+        const total = categoryData.reduce((s, d) => s + d.total, 0);
+        if (!total) {
+            emptyState("categoryChartWrap", "Registre despesas para ver a distribuição por categoria.");
+        } else {
+            const palette = [primary, success, warning, danger, info, "#8b5cf6", "#14b8a6", "#f43f5e"];
+            new Chart(categoryCtx, {
+                type: "doughnut",
+                data: {
+                    labels: categoryData.map((d) => d.category),
+                    datasets: [{ data: categoryData.map((d) => d.total), backgroundColor: palette, borderColor: css("--cm-surface") || "#fff", borderWidth: 3, hoverOffset: 8 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { animateRotate: true, duration: 800, easing: "easeOutQuart" },
+                    cutout: "62%",
+                    plugins: {
+                        legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: { callbacks: { label: (ctx) => " " + ctx.label + ": " + brl(ctx.parsed) } }
+                    }
+                }
+            });
+        }
+    }
+})();
+</script>
+{% endblock %}

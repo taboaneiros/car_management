@@ -1,0 +1,63 @@
+{% for refueling in refuelings %}
+<tr>
+    <td>{{ refueling.occurred_at|date:"d/m/Y" }}</td>
+    <td>{{ refueling.vehicle.name }}</td>
+    <td class="text-end">{{ refueling.odometer|default:"--" }}</td>
+    <td class="text-end">{{ refueling.liters|floatformat:2 }}</td>
+    <td class="text-end">{{ refueling.price_per_liter|floatformat:3 }}</td>
+    <td class="text-end"><strong>R$ {{ refueling.total_amount|floatformat:2 }}</strong></td>
+    <td class="text-center">
+        {% if refueling.is_full_tank %}
+        <i class="bi bi-check-circle-fill text-success"></i>
+        {% else %}
+        <i class="bi bi-dash-circle text-muted"></i>
+        {% endif %}
+    </td>
+    <td class="text-end">
+        {% if refueling.consumption_km_l %}
+        {{ refueling.consumption_km_l|floatformat:1 }} km/l
+        {% else %}
+        --
+        {% endif %}
+    </td>
+    <td class="text-center">
+        <div class="btn-group btn-group-sm">
+            <a href="{% url 'fuel:update' refueling.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-pencil"></i>
+            </a>
+            <button type="button" class="btn btn-outline-danger"
+                    data-bs-toggle="modal" data-bs-target="#deleteModal{{ refueling.id }}">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal{{ refueling.id }}" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Excluir?</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small mb-0">Excluir abastecimento de {{ refueling.occurred_at|date:"d/m/Y" }}?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Não</button>
+                <form method="post" action="{% url 'fuel:delete' refueling.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Sim</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<tr>
+    <td colspan="9" class="text-center text-muted py-4">
+        Nenhum abastecimento encontrado para os filtros selecionados.
+    </td>
+</tr>
+{% endfor %}

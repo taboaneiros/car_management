@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Despesas</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-cash-stack me-2 text-warning"></i>Despesas</h1>
+            <p class="text-muted small mb-0">Todas as despesas dos seus veículos em um só lugar.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'dashboard:export_expenses_csv' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Exportar CSV
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-plus-circle me-1"></i>Nova Despesa
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="{% url 'expenses:create' %}"><i class="bi bi-car-front me-2"></i>Selecionar veículo...</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% for v in vehicles %}
+                    <li><a class="dropdown-item" href="{% url 'expenses:create' %}?vehicle={{ v.id }}"><i class="bi bi-cash-stack me-2 text-warning"></i>{{ v.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-end"
+                  hx-get="{% url 'expenses:list' %}"
+                  hx-target="#expenseTableCard"
+                  hx-select="#expenseTableCard"
+                  hx-swap="outerHTML"
+                  hx-trigger="change delay:350ms, submit">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold" for="e-vehicle">Veículo</label>
+                    <select name="vehicle" id="e-vehicle" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}" {% if request.GET.vehicle == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold" for="e-category">Categoria</label>
+                    <select name="category" id="e-category" class="form-select form-select-sm">
+                        <option value="">Todas</option>
+                        {% for c in categories %}
+                        <option value="{{ c.id }}" {% if request.GET.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="e-start">Data Início</label>
+                    <input type="date" name="start_date" id="e-start" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="e-end">Data Fim</label>
+                    <input type="date" name="end_date" id="e-end" class="form-control form-control-sm" value="{{ request.GET.end_date }}">
+                </div>
+                <div class="col-12 col-md-2 d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                    <a href="{% url 'expenses:list' %}" class="btn btn-sm btn-outline-secondary" title="Limpar filtros"><i class="bi bi-x-lg"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if expenses %}
+    <!-- Table Card (HTMX swap target) -->
+    <div id="expenseTableCard">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted small"><i class="bi bi-database me-1"></i>{{ page_obj.paginator.count }} registro(s)</span>
+            <a href="{% url 'expenses:category_list' %}" class="btn btn-sm btn-soft"><i class="bi bi-tags me-1"></i>Gerenciar categorias</a>
+        </div>
+        <div class="cm-table-wrap">
+            <div class="cm-table-scroll">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th class="d-none d-md-table-cell">Categoria</th>
+                            <th class="d-none d-lg-table-cell">Veículo</th>
+                            <th class="text-end">Valor</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td class="text-nowrap">{{ expense.occurred_at|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="fw-semibold">{{ expense.description|default:"--"|truncatechars:32 }}</span>
+                                {% if expense.notes %}<div class="text-muted small">{{ expense.notes|truncatechars:40 }}</div>{% endif %}
+                            </td>
+                            <td class="d-none d-md-table-cell">
+                                {% if expense.category %}<span class="cm-chip"><i class="bi bi-tag"></i>{{ expense.category.name }}</span>{% else %}--{% endif %}
+                            </td>
+                            <td class="d-none d-lg-table-cell">{{ expense.vehicle.name }}</td>
+                            <td class="text-end fw-semibold">R$ {{ expense.amount|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'expenses:update' expense.id %}" class="btn btn-outline-secondary" aria-label="Editar despesa" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <button type="button" class="btn btn-outline-danger" aria-label="Excluir despesa" title="Excluir" data-bs-toggle="modal" data-bs-target="#deleteModal{{ expense.id }}"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Delete Modal -->
+                        <div class="modal fade" id="deleteModal{{ expense.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-sm">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h6 class="modal-title">Excluir despesa?</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="mb-0">Excluir a despesa de <strong>{{ expense.vehicle.name }}</strong> em {{ expense.occurred_at|date:"d/m/Y" }} (R$ {{ expense.amount|floatformat:2 }})?</p>
+                                        <p class="text-danger small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não pode ser desfeita.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                        <form method="post" action="{% url 'expenses:delete' expense.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Excluir</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Nenhuma despesa encontrada para os filtros selecionados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+            <span class="text-muted small">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            <nav aria-label="Paginação">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}"><i class="bi bi-chevron-left"></i></a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}"><i class="bi bi-chevron-right"></i></a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="cm-empty">
+            <div class="cm-empty-icon"><i class="bi bi-cash-stack"></i></div>
+            <h4 class="cm-empty-title">Nenhuma despesa registrada</h4>
+            <p class="cm-empty-text">Registre sua primeira despesa — pedágio, estacionamento, manutenção e muito mais.</p>
+            <a href="{% url 'expenses:create' %}" class="btn btn-primary mt-2"><i class="bi bi-plus-circle me-2"></i>Nova Despesa</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

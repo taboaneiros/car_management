@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Excluir Conta - Car Management{% endblock %}
+
+{% block breadcrumbs %}<a href="{% url 'users:profile' %}">Meu Perfil</a><span class="cm-breadcrumb-sep">/</span><span class="current">Excluir Conta</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-6">
+            <div class="mb-4">
+                <h1 class="h3 mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Excluir Conta</h1>
+            </div>
+
+            <div class="card border-danger mb-4">
+                <div class="card-header text-white" style="background:var(--cm-danger)">
+                    <h5 class="mb-0"><i class="bi bi-warning me-2"></i>Atenção: esta ação é irreversível</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">Ao excluir sua conta, todos os seus dados serão permanentemente removidos, incluindo:</p>
+                    <ul class="mt-2 mb-0">
+                        <li>Veículos cadastrados</li>
+                        <li>Registros de abastecimento</li>
+                        <li>Despesas registradas</li>
+                        <li>Categorias personalizadas</li>
+                        <li>Todos os demais dados associados</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Cancelar</a>
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Excluir Minha Conta</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
