@@ -13,6 +13,9 @@ from django.urls import reverse
 
 from apps.expenses.models import Expense
 from apps.fuel.models import FuelType, Refueling
+from apps.maintenance.models import Maintenance, ServiceType
+from apps.reminders.models import Reminder
+from apps.trips.models import Trip
 from apps.vehicles.models import Vehicle
 
 from .drivvo_parser import (
@@ -21,11 +24,16 @@ from .drivvo_parser import (
     detect_encoding,
     extract_expenses,
     extract_refuelings,
+    extract_reminders,
+    extract_services,
+    extract_trips,
     extract_vehicles,
     map_expense_category,
     map_fuel_type,
+    map_trip_purpose,
     map_vehicle_type,
     parse_date,
+    parse_datetime,
     parse_decimal,
     parse_drivvo_csv,
     parse_sections,
@@ -81,9 +89,12 @@ class DrivvoParserTests(SimpleTestCase):
         self.assertEqual(len(sections["vehicles"]["rows"]), 1)
         self.assertEqual(len(sections["refuelings"]["rows"]), 3)
         self.assertEqual(len(sections["expenses"]["rows"]), 2)
+        self.assertEqual(len(sections["services"]["rows"]), 2)
+        self.assertEqual(len(sections["reminders"]["rows"]), 1)
+        self.assertEqual(len(sections["trips"]["rows"]), 2)
         self.assertEqual(
             sections["unsupported_sections"],
-            ["Lembrete", "Percurso", "Receita", "Serviço"],
+            ["Receita"],
         )
 
     def test_parse_sections_cleans_duplicate_headers(self):
@@ -105,7 +116,8 @@ class DrivvoParserTests(SimpleTestCase):
             self.assertEqual(len(sections["vehicles"]["rows"]), 1)
             self.assertEqual(len(sections["refuelings"]["rows"]), 1)
             self.assertEqual(len(sections["expenses"]["rows"]), 1)
-            self.assertEqual(sections["unsupported_sections"], ["Serviço"])
+            self.assertEqual(len(sections["services"]["rows"]), 1)
+            self.assertEqual(sections["unsupported_sections"], [])
             row = sections["refuelings"]["rows"][0]
             self.assertEqual(row["Nome do veículo"], "Meu Carro")
             self.assertEqual(row["Valor total"], "200.00")
@@ -169,6 +181,47 @@ class DrivvoParserTests(SimpleTestCase):
         )
         self.assertEqual(first["notes"], "Pessoal - Bardhal flex")
 
+    def test_extract_services(self):
+        """Service extraction maps values and attributes correctly."""
+        sections = parse_sections(str(SAMPLE_PATH))
+        services = extract_services(sections)
+        self.assertEqual(len(services), 2)
+        first = services[0]
+        self.assertEqual(first["vehicle_name"], "Citroen C3 XTR")
+        self.assertEqual(first["occurred_at"].isoformat(), "2026-01-19")
+        self.assertEqual(first["total_amount"], Decimal("28.98"))
+        self.assertEqual(first["service_type_name"], "Filtro de Ar")
+        self.assertEqual(first["workshop_name"], "Timóteo Car")
+        self.assertEqual(first["odometer"], Decimal("93447"))
+
+    def test_extract_reminders(self):
+        """Reminder extraction maps dates, odometer and titles correctly."""
+        sections = parse_sections(str(SAMPLE_PATH))
+        reminders = extract_reminders(sections)
+        self.assertEqual(len(reminders), 1)
+        first = reminders[0]
+        self.assertEqual(first["vehicle_name"], "Citroen C3 XTR")
+        self.assertEqual(first["title"], "Velas de Ignição")
+        self.assertEqual(first["due_date"].isoformat(), "2023-11-21")
+        self.assertEqual(first["due_odometer"], Decimal("125991"))
+
+    def test_extract_trips(self):
+        """Trip extraction parses timestamps, odometers and purposes."""
+        sections = parse_sections(str(SAMPLE_PATH))
+        trips = extract_trips(sections)
+        self.assertEqual(len(trips), 2)
+        first = trips[0]
+        self.assertEqual(first["vehicle_name"], "Citroen C3 XTR")
+        self.assertEqual(first["started_at"].isoformat(), "2021-11-28T17:30:00")
+        self.assertEqual(first["ended_at"].isoformat(), "2021-11-28T18:55:00")
+        self.assertEqual(first["start_odometer"], Decimal("71686"))
+        self.assertEqual(first["end_odometer"], Decimal("71735"))
+        self.assertEqual(first["distance"], Decimal("49"))
+        self.assertEqual(first["origin"], "Posto Box4")
+        self.assertEqual(first["destination"], "Casa")
+        self.assertEqual(first["purpose"], "personal")
+        self.assertEqual(first["notes"], "Visita Maurício")
+
     def test_parse_decimal(self):
         """parse_decimal handles both Brazilian and Drivvo number formats."""
         self.assertEqual(parse_decimal("22.8"), Decimal("22.8"))
@@ -189,6 +242,13 @@ class DrivvoParserTests(SimpleTestCase):
         self.assertIsNone(parse_date("not a date"))
         self.assertIsNone(parse_date(None))
 
+    def test_parse_datetime(self):
+        """parse_datetime supports DD/MM/YYYY HH:MM and other formats."""
+        parsed = parse_datetime("28/11/2021 17:30")
+        self.assertEqual(parsed.isoformat(), "2021-11-28T17:30:00")
+        self.assertIsNone(parse_datetime("invalid"))
+        self.assertIsNone(parse_datetime(None))
+
     def test_parse_year(self):
         self.assertEqual(parse_year("2009"), 2009)
         self.assertEqual(parse_year(2009), 2009)
@@ -203,6 +263,9 @@ class DrivvoParserTests(SimpleTestCase):
         self.assertEqual(map_fuel_type("Gasolina Comum"), "Gasolina comum")
         self.assertEqual(map_expense_category("Conveniência Posto"), "Conveniência")
         self.assertEqual(map_expense_category("Desconhecido"), "Outros")
+        self.assertEqual(map_trip_purpose("Pessoal"), "personal")
+        self.assertEqual(map_trip_purpose("Trabalho"), "business")
+        self.assertEqual(map_trip_purpose("Frete"), "freight")
 
     def test_legacy_parser_api(self):
         """DrivvoParser.parse and parse_drivvo_csv still work."""
@@ -210,7 +273,11 @@ class DrivvoParserTests(SimpleTestCase):
         self.assertEqual(len(result["vehicles"]), 1)
         self.assertEqual(len(result["refuelings"]), 3)
         self.assertEqual(len(result["expenses"]), 2)
-        self.assertIn("Serviço", result["unsupported_sections"])
+        self.assertEqual(len(result["services"]), 2)
+        self.assertEqual(len(result["reminders"]), 1)
+        self.assertEqual(len(result["trips"]), 2)
+        self.assertNotIn("Percurso", result["unsupported_sections"])
+        self.assertIn("Receita", result["unsupported_sections"])
 
         parser = DrivvoParser()
         self.assertEqual(len(parser.parse(str(SAMPLE_PATH))["refuelings"]), 3)
@@ -233,6 +300,9 @@ class DrivvoImportServiceTests(TestCase):
             "vehicles": extract_vehicles(sections),
             "refuelings": extract_refuelings(sections),
             "expenses": extract_expenses(sections),
+            "services": extract_services(sections),
+            "reminders": extract_reminders(sections),
+            "trips": extract_trips(sections),
             "unsupported_sections": sections.get("unsupported_sections", []),
         }
 
@@ -244,8 +314,14 @@ class DrivvoImportServiceTests(TestCase):
         self.assertEqual(result["vehicles_updated"], 0)
         self.assertEqual(result["refuelings_created"], 3)
         self.assertEqual(result["expenses_created"], 2)
+        self.assertEqual(result["maintenances_created"], 2)
+        self.assertEqual(result["reminders_created"], 1)
+        self.assertEqual(result["trips_created"], 2)
         self.assertEqual(result["refuelings_skipped"], 0)
         self.assertEqual(result["expenses_skipped"], 0)
+        self.assertEqual(result["maintenances_skipped"], 0)
+        self.assertEqual(result["reminders_skipped"], 0)
+        self.assertEqual(result["trips_skipped"], 0)
 
         vehicle = Vehicle.objects.get(owner_primary=self.user)
         self.assertEqual(vehicle.name, "Citroen C3 XTR")
@@ -269,6 +345,25 @@ class DrivvoImportServiceTests(TestCase):
         self.assertEqual(first_expense.category.name, "Conveniência")
         self.assertEqual(first_expense.odometer, 85127)
 
+        self.assertEqual(vehicle.maintenances.count(), 2)
+        first_maint = vehicle.maintenances.get(service_type__name="Filtro de Ar")
+        self.assertEqual(first_maint.total_amount, Decimal("28.98"))
+        self.assertEqual(first_maint.odometer, 93447)
+        self.assertEqual(first_maint.workshop_name, "Timóteo Car")
+
+        self.assertEqual(vehicle.reminders.count(), 1)
+        first_rem = vehicle.reminders.first()
+        self.assertEqual(first_rem.title, "Velas de Ignição")
+        self.assertEqual(first_rem.due_odometer, 125991)
+
+        self.assertEqual(vehicle.trips.count(), 2)
+        trip = vehicle.trips.filter(origin="Posto Box4").first()
+        self.assertIsNotNone(trip)
+        self.assertEqual(trip.destination, "Casa")
+        self.assertEqual(trip.start_odometer, 71686)
+        self.assertEqual(trip.end_odometer, 71735)
+        self.assertEqual(trip.distance, Decimal("49.00"))
+
         # Vehicle odometer cache updated from the refuelings.
         vehicle.refresh_from_db()
         self.assertEqual(vehicle.current_odometer_cache, 95729)
@@ -278,6 +373,9 @@ class DrivvoImportServiceTests(TestCase):
         first_result = import_drivvo_data(self.user, self.parsed_data)
         self.assertEqual(first_result["refuelings_created"], 3)
         self.assertEqual(first_result["expenses_created"], 2)
+        self.assertEqual(first_result["maintenances_created"], 2)
+        self.assertEqual(first_result["reminders_created"], 1)
+        self.assertEqual(first_result["trips_created"], 2)
 
         second_result = import_drivvo_data(self.user, self.parsed_data)
 
@@ -285,12 +383,21 @@ class DrivvoImportServiceTests(TestCase):
         self.assertEqual(second_result["vehicles_updated"], 1)
         self.assertEqual(second_result["refuelings_created"], 0)
         self.assertEqual(second_result["expenses_created"], 0)
+        self.assertEqual(second_result["maintenances_created"], 0)
+        self.assertEqual(second_result["reminders_created"], 0)
+        self.assertEqual(second_result["trips_created"], 0)
         self.assertEqual(second_result["refuelings_skipped"], 3)
         self.assertEqual(second_result["expenses_skipped"], 2)
+        self.assertEqual(second_result["maintenances_skipped"], 2)
+        self.assertEqual(second_result["reminders_skipped"], 1)
+        self.assertEqual(second_result["trips_skipped"], 2)
 
         vehicle = Vehicle.objects.get(owner_primary=self.user)
         self.assertEqual(vehicle.refuelings.count(), 3)
         self.assertEqual(vehicle.expenses.count(), 2)
+        self.assertEqual(vehicle.maintenances.count(), 2)
+        self.assertEqual(vehicle.reminders.count(), 1)
+        self.assertEqual(vehicle.trips.count(), 2)
 
     def test_dedupe_imports_command_removes_duplicates(self):
         """dedupe_imports removes duplicate records keeping the oldest copy."""
@@ -343,7 +450,7 @@ class DrivvoImportServiceTests(TestCase):
         """Unsupported sections present in the file are reported as warnings."""
         result = import_drivvo_data(self.user, self.parsed_data)
         self.assertTrue(
-            any("Serviço" in warning for warning in result["warnings"])
+            any("Receita" in warning for warning in result["warnings"])
         )
         self.assertTrue(
             any("não importadas" in warning for warning in result["warnings"])
@@ -470,6 +577,61 @@ class DrivvoImportServiceTests(TestCase):
         self.assertEqual(Expense.objects.count(), 0)
         self.assertTrue(result["errors"])
 
+    def test_import_creates_service_type_when_missing(self):
+        """A service type not in the system is created for the user."""
+        self.parsed_data["services"][0]["service_type_name"] = "Troca de Velas Custom"
+        result = import_drivvo_data(self.user, self.parsed_data)
+        self.assertEqual(result["maintenances_created"], 2)
+        st = ServiceType.objects.get(user=self.user, name="Troca de Velas Custom")
+        self.assertIsNotNone(st)
+
+    def test_import_skips_service_for_unknown_vehicle(self):
+        """Services referencing a vehicle not in the file are skipped."""
+        data = {
+            "vehicles": [],
+            "refuelings": [],
+            "expenses": [],
+            "services": [
+                {
+                    "vehicle_name": "Inexistente",
+                    "odometer": 1000,
+                    "occurred_at": parse_date("01/01/2026 10:00"),
+                    "service_type_name": "Alinhamento",
+                    "total_amount": Decimal("100.00"),
+                    "workshop_name": "Oficina",
+                    "notes": "",
+                }
+            ],
+            "reminders": [],
+            "unsupported_sections": [],
+        }
+        result = import_drivvo_data(self.user, data)
+        self.assertEqual(result["maintenances_skipped"], 1)
+        self.assertEqual(Maintenance.objects.count(), 0)
+        self.assertTrue(result["warnings"])
+
+    def test_import_skips_reminder_for_unknown_vehicle(self):
+        """Reminders referencing a vehicle not in the file are skipped."""
+        data = {
+            "vehicles": [],
+            "refuelings": [],
+            "expenses": [],
+            "services": [],
+            "reminders": [
+                {
+                    "vehicle_name": "Inexistente",
+                    "title": "Troca de Óleo",
+                    "due_date": parse_date("01/01/2026 10:00"),
+                    "due_odometer": 10000,
+                }
+            ],
+            "unsupported_sections": [],
+        }
+        result = import_drivvo_data(self.user, data)
+        self.assertEqual(result["reminders_skipped"], 1)
+        self.assertEqual(Reminder.objects.count(), 0)
+        self.assertTrue(result["warnings"])
+
 
 class DrivvoImportViewTests(TestCase):
     """Tests for the Drivvo import view."""
@@ -508,6 +670,9 @@ class DrivvoImportViewTests(TestCase):
         self.assertEqual(Vehicle.objects.count(), 1)
         self.assertEqual(Refueling.objects.count(), 3)
         self.assertEqual(Expense.objects.count(), 2)
+        self.assertEqual(Maintenance.objects.count(), 2)
+        self.assertEqual(Reminder.objects.count(), 1)
+        self.assertEqual(Trip.objects.count(), 2)
 
     def test_post_rejects_non_csv(self):
         from django.contrib.messages import get_messages

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+{% if object %}Editar Lembrete{% else %}Novo Lembrete{% endif %} - Car Management
+{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'reminders:list' %}">Lembretes</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">{% if object %}Editar{% else %}Novo{% endif %}</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bell me-2 text-warning"></i>
+                        {% if object %}Editar Lembrete{% else %}Agendar Lembrete{% endif %}
+                    </h5>
+                    <a href="{% url 'reminders:list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Helper Calculator Card -->
+                    <div class="alert alert-light border mb-4 shadow-sm" id="reminderCalcBox">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                            <div class="fw-semibold text-primary">
+                                <i class="bi bi-magic me-1"></i>Assistente Rápido de Agendamento
+                            </div>
+                            <div class="small text-muted">
+                                <i class="bi bi-speedometer2 me-1"></i>Odômetro atual: <span class="badge bg-primary text-white" id="currentOdoBadge">-- km</span>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-3">
+                            Clique nos botões abaixo para preencher automaticamente a data ou o odômetro final com base na quilometragem atual do veículo:
+                        </p>
+                        <div class="row g-2">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-muted mb-1"><i class="bi bi-calendar3 me-1"></i>Prazo por Tempo:</label>
+                                <div class="btn-group btn-group-sm w-100" role="group">
+                                    <button type="button" class="btn btn-outline-secondary btn-calc-date" data-months="6">+6 meses</button>
+                                    <button type="button" class="btn btn-outline-primary btn-calc-date" data-months="12">+12 meses (1 ano)</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-calc-date" data-months="24">+24 meses</button>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold text-muted mb-1"><i class="bi bi-speedometer2 me-1"></i>Prazo por Km:</label>
+                                <div class="btn-group btn-group-sm w-100" role="group">
+                                    <button type="button" class="btn btn-outline-secondary btn-calc-km" data-km="5000">+5.000 km</button>
+                                    <button type="button" class="btn btn-outline-success btn-calc-km" data-km="10000">+10.000 km</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-calc-km" data-km="15000">+15.000 km</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ vehicle_odometers|json_script:"vehicle-odometers-data" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let odometers = {};
+    const odoScript = document.getElementById('vehicle-odometers-data');
+    if (odoScript) {
+        try { odometers = JSON.parse(odoScript.textContent); } catch(e) {}
+    }
+
+    const vehicleSelect = document.getElementById('id_vehicle');
+    const badge = document.getElementById('currentOdoBadge');
+    const inputOdo = document.getElementById('id_due_odometer');
+    const inputDate = document.getElementById('id_due_date');
+    const inputRecKm = document.getElementById('id_recurrence_interval_km');
+    const inputRecMonths = document.getElementById('id_recurrence_interval_months');
+
+    function getSelectedVehicleOdometer() {
+        if (!vehicleSelect) {
+            // Hidden input or single vehicle
+            const singleVehId = "{{ selected_vehicle.id|default:'' }}";
+            if (singleVehId && odometers[singleVehId] !== undefined) {
+                return parseInt(odometers[singleVehId], 10) || 0;
+            }
+            const keys = Object.keys(odometers);
+            return keys.length > 0 ? (parseInt(odometers[keys[0]], 10) || 0) : 0;
+        }
+        const val = vehicleSelect.value;
+        return odometers[val] !== undefined ? (parseInt(odometers[val], 10) || 0) : 0;
+    }
+
+    function updateBadge() {
+        const cur = getSelectedVehicleOdometer();
+        if (badge) {
+            badge.textContent = cur > 0 ? (cur.toLocaleString('pt-BR') + ' km') : '0 km';
+        }
+    }
+
+    if (vehicleSelect) {
+        vehicleSelect.addEventListener('change', updateBadge);
+    }
+    updateBadge();
+
+    // Km shortcuts
+    document.querySelectorAll('.btn-calc-km').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const addKm = parseInt(this.getAttribute('data-km'), 10) || 0;
+            const curOdo = getSelectedVehicleOdometer();
+            const targetOdo = curOdo + addKm;
+            if (inputOdo) {
+                inputOdo.value = targetOdo;
+                inputOdo.classList.add('is-valid');
+                setTimeout(() => inputOdo.classList.remove('is-valid'), 1500);
+            }
+            if (inputRecKm) {
+                inputRecKm.value = addKm;
+            }
+        });
+    });
+
+    // Date shortcuts
+    document.querySelectorAll('.btn-calc-date').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const addMonths = parseInt(this.getAttribute('data-months'), 10) || 0;
+            const now = new Date();
+            now.setMonth(now.getMonth() + addMonths);
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const targetDate = `${yyyy}-${mm}-${dd}`;
+            if (inputDate) {
+                inputDate.value = targetDate;
+                inputDate.classList.add('is-valid');
+                setTimeout(() => inputDate.classList.remove('is-valid'), 1500);
+            }
+            if (inputRecMonths) {
+                inputRecMonths.value = addMonths;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+

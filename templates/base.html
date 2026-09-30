@@ -1,7 +1,8 @@
 {% load static %}
 {% load django_htmx %}
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="pt-BR" data-bs-theme="light">
+<html lang="{{ request.LANGUAGE_CODE|default:'pt-br' }}" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,6 +30,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="{% url 'sync:pwa_manifest' %}">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
 
     {% block extra_css %}{% endblock %}
 
@@ -40,9 +47,14 @@
 <div class="cm-shell">
     <!-- ================= SIDEBAR ================= -->
     <aside class="cm-sidebar" id="cmSidebar" aria-label="Navegação principal">
-        <div class="cm-sidebar-brand">
-            <span class="cm-brand-logo"><i class="bi bi-car-front-fill"></i></span>
-            <span class="cm-brand-text">Car Management</span>
+        <div class="cm-sidebar-brand d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <span class="cm-brand-logo"><i class="bi bi-car-front-fill"></i></span>
+                <span class="cm-brand-text">Car Management</span>
+            </div>
+            <button type="button" class="cm-sidebar-close-btn d-lg-none" data-sidebar-close aria-label="Fechar menu">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
 
         <nav class="cm-sidebar-nav">
@@ -68,11 +80,41 @@
                 <i class="bi bi-cash-stack"></i><span>Despesas</span>
             </a>
 
+            <a class="cm-nav-link {% if 'maintenance' in request.path %}active{% endif %}"
+               href="{% url 'maintenance:list' %}" title="Manutenções">
+                <i class="bi bi-tools"></i><span>Manutenções</span>
+            </a>
+
+            <a class="cm-nav-link {% if 'reminders' in request.path %}active{% endif %}"
+               href="{% url 'reminders:list' %}" title="Lembretes">
+                <i class="bi bi-bell"></i><span>Lembretes</span>
+            </a>
+
+            <a class="cm-nav-link {% if 'trips' in request.path %}active{% endif %}"
+               href="{% url 'trips:list' %}" title="Viagens e Percursos">
+                <i class="bi bi-geo-alt"></i><span>Viagens</span>
+            </a>
+
+            <a class="cm-nav-link {% if 'checklists' in request.path %}active{% endif %}"
+               href="{% url 'checklists:list' %}" title="Checklists de Inspeção">
+                <i class="bi bi-card-checklist"></i><span>Checklists</span>
+            </a>
+
+            <a class="cm-nav-link {% if 'reports' in request.path %}active{% endif %}"
+               href="{% url 'reports:hub' %}" title="Relatórios e Análises">
+                <i class="bi bi-bar-chart-line"></i><span>Relatórios</span>
+            </a>
+
             <div class="cm-nav-label">Gestão</div>
+
+            <a class="cm-nav-link {% if 'service-types' in request.path %}active{% endif %}"
+               href="{% url 'maintenance:service_type_list' %}" title="Tipos de Serviço">
+                <i class="bi bi-wrench-adjustable"></i><span>Tipos de Serviço</span>
+            </a>
 
             <a class="cm-nav-link {% if 'category' in request.path %}active{% endif %}"
                href="{% url 'expenses:category_list' %}" title="Categorias de despesa">
-                <i class="bi bi-tags"></i><span>Categorias</span>
+                <i class="bi bi-tags"></i><span>Categorias de Despesa</span>
             </a>
 
             <a class="cm-nav-link {% if 'imports' in request.path %}active{% endif %}"
@@ -106,14 +148,22 @@
                 <button type="button" class="cm-icon-btn" data-sidebar-toggle aria-label="Alternar menu">
                     <i class="bi bi-list"></i>
                 </button>
-                <nav class="cm-breadcrumb" aria-label="breadcrumb">
+                <nav class="cm-breadcrumb d-none d-md-flex" aria-label="breadcrumb">
                     <a href="{% url 'dashboard:home' %}"><i class="bi bi-house-door"></i></a>
                     <span class="cm-breadcrumb-sep">/</span>
                     {% block breadcrumbs %}<span class="current">Car Management</span>{% endblock %}
                 </nav>
+                <span class="fw-bold d-md-none text-truncate" style="max-width: 140px; font-size: 0.95rem;">
+                    {% block mobile_title %}Car Management{% endblock %}
+                </span>
             </div>
 
             <div class="cm-topbar-end">
+                <!-- Network / Offline Status Pill -->
+                <span class="cm-network-pill badge bg-success-subtle text-success border border-success-subtle" onclick="openOfflineSyncModal()" role="button" title="Status de conexão">
+                    <i class="bi bi-wifi me-1"></i>Online
+                </span>
+
                 <!-- Quick add -->
                 <div class="dropdown">
                     <button class="btn btn-soft btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -123,7 +173,13 @@
                         <li><h6 class="dropdown-header">Adicionar registro</h6></li>
                         <li><a class="dropdown-item" href="{% url 'fuel:create' %}"><i class="bi bi-fuel-pump me-2 text-success"></i>Abastecimento</a></li>
                         <li><a class="dropdown-item" href="{% url 'expenses:create' %}"><i class="bi bi-cash-stack me-2 text-warning"></i>Despesa</a></li>
-                        <li><a class="dropdown-item" href="{% url 'vehicles:create' %}"><i class="bi bi-truck me-2 text-primary"></i>Veículo</a></li>
+                        <li><a class="dropdown-item" href="{% url 'maintenance:create' %}"><i class="bi bi-tools me-2 text-primary"></i>Manutenção</a></li>
+                        <li><a class="dropdown-item" href="{% url 'reminders:create' %}"><i class="bi bi-bell me-2 text-warning"></i>Lembrete</a></li>
+                        <li><a class="dropdown-item" href="{% url 'trips:create' %}"><i class="bi bi-geo-alt me-2 text-info"></i>Viagem</a></li>
+                        <li><a class="dropdown-item" href="{% url 'checklists:create' %}"><i class="bi bi-card-checklist me-2 text-success"></i>Checklist</a></li>
+                        <li><a class="dropdown-item" href="{% url 'vehicles:create' %}"><i class="bi bi-truck me-2 text-secondary"></i>Veículo</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'reports:export_data' %}"><i class="bi bi-download me-2 text-secondary"></i>Exportar Dados</a></li>
                     </ul>
                 </div>
 
@@ -132,6 +188,30 @@
                     <i class="bi bi-sun cm-theme-icon-sun"></i>
                     <i class="bi bi-moon-stars cm-theme-icon-moon" style="display:none"></i>
                 </button>
+
+                <!-- Language Selector -->
+                {% get_current_language as CURRENT_LANG %}
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Selecionar idioma / Select language">
+                        <i class="bi bi-translate"></i>
+                        <span class="text-uppercase small fw-semibold">
+                            {% if 'en' in CURRENT_LANG %}EN{% elif 'es' in CURRENT_LANG %}ES{% else %}PT{% endif %}
+                        </span>
+                    </button>
+                    <form action="{% url 'set_language' %}" method="post" class="dropdown-menu dropdown-menu-end shadow-sm p-1" style="min-width: 160px;">
+                        {% csrf_token %}
+                        <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                        <button type="submit" name="language" value="pt-br" class="dropdown-item d-flex align-items-center gap-2 rounded-2 {% if 'pt' in CURRENT_LANG %}active{% endif %}">
+                            <span>🇧🇷</span><span>Português (BR)</span>
+                        </button>
+                        <button type="submit" name="language" value="en" class="dropdown-item d-flex align-items-center gap-2 rounded-2 {% if 'en' in CURRENT_LANG %}active{% endif %}">
+                            <span>🇺🇸</span><span>English</span>
+                        </button>
+                        <button type="submit" name="language" value="es" class="dropdown-item d-flex align-items-center gap-2 rounded-2 {% if 'es' in CURRENT_LANG %}active{% endif %}">
+                            <span>🇪🇸</span><span>Español</span>
+                        </button>
+                    </form>
+                </div>
 
                 <!-- User menu -->
                 <div class="dropdown">
@@ -190,8 +270,116 @@
     {% endfor %}
 </div>
 
+<!-- Mobile Bottom Navigation Bar (Smartphones) -->
+<nav class="cm-mobile-nav d-md-none" aria-label="Navegação rápida mobile">
+    <a href="{% url 'dashboard:home' %}" class="cm-mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i>
+        <span>Início</span>
+    </a>
+    <a href="{% url 'vehicles:list' %}" class="cm-mobile-nav-item {% if 'vehicles' in request.path %}active{% endif %}">
+        <i class="bi bi-truck"></i>
+        <span>Veículos</span>
+    </a>
+    <button type="button" class="cm-mobile-nav-fab border-0" data-bs-toggle="modal" data-bs-target="#cmQuickActionModal" aria-label="Ações rápidas" title="Novo registro">
+        <i class="bi bi-plus-lg"></i>
+    </button>
+    <a href="{% url 'reminders:list' %}" class="cm-mobile-nav-item {% if 'reminders' in request.path %}active{% endif %}">
+        <i class="bi bi-bell"></i>
+        <span>Lembretes</span>
+    </a>
+    <button type="button" class="cm-mobile-nav-item bg-transparent border-0 position-relative" data-sidebar-toggle aria-label="Mais opções">
+        <i class="bi bi-grid-fill"></i>
+        <span>Menu</span>
+        <span id="cmMobileMenuBadge" class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-warning text-dark" style="display:none; font-size:.65rem">0</span>
+    </button>
+</nav>
+
+<!-- Quick Action Modal / Bottom Sheet -->
+<div class="modal fade" id="cmQuickActionModal" tabindex="-1" aria-labelledby="cmQuickActionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold fs-6" id="cmQuickActionLabel"><i class="bi bi-plus-circle me-1 text-primary"></i>Novo Registro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-2 pb-3">
+                <div class="cm-action-sheet-grid">
+                    <a href="{% url 'fuel:create' %}" class="cm-action-sheet-btn">
+                        <div class="cm-action-sheet-icon bg-success-subtle text-success">
+                            <i class="bi bi-fuel-pump"></i>
+                        </div>
+                        <span class="cm-action-sheet-label">Abastecer</span>
+                    </a>
+                    <a href="{% url 'expenses:create' %}" class="cm-action-sheet-btn">
+                        <div class="cm-action-sheet-icon bg-warning-subtle text-warning">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <span class="cm-action-sheet-label">Despesa</span>
+                    </a>
+                    <a href="{% url 'maintenance:create' %}" class="cm-action-sheet-btn">
+                        <div class="cm-action-sheet-icon bg-primary-subtle text-primary">
+                            <i class="bi bi-tools"></i>
+                        </div>
+                        <span class="cm-action-sheet-label">Manutenção</span>
+                    </a>
+                    <a href="{% url 'reminders:create' %}" class="cm-action-sheet-btn">
+                        <div class="cm-action-sheet-icon bg-danger-subtle text-danger">
+                            <i class="bi bi-bell"></i>
+                        </div>
+                        <span class="cm-action-sheet-label">Lembrete</span>
+                    </a>
+                    <a href="{% url 'checklists:create' %}" class="cm-action-sheet-btn">
+                        <div class="cm-action-sheet-icon bg-info-subtle text-info">
+                            <i class="bi bi-card-checklist"></i>
+                        </div>
+                        <span class="cm-action-sheet-label">Checklist</span>
+                    </a>
+                    <a href="{% url 'trips:create' %}" class="cm-action-sheet-btn">
+                        <div class="cm-action-sheet-icon bg-secondary-subtle text-secondary">
+                            <i class="bi bi-geo-alt"></i>
+                        </div>
+                        <span class="cm-action-sheet-label">Viagem</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offline Sync Status Modal -->
+<div class="modal fade" id="cmOfflineSyncModal" tabindex="-1" aria-labelledby="cmOfflineSyncModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-cloud-arrow-up fs-4 text-primary"></i>
+                    <div>
+                        <h5 class="modal-title fw-bold fs-6 mb-0" id="cmOfflineSyncModalLabel">Sincronização Offline</h5>
+                        <small class="text-muted" id="cmOfflineModalCount">0 pendente(s)</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="list-group list-group-flush" id="cmOfflineQueueList">
+                    <!-- Preenchido dinamicamente por offline-manager.js -->
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-sm btn-primary" id="cmOfflineModalSyncBtn" onclick="OfflineManager.triggerSync()">
+                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Agora
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Bootstrap 5 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Offline PWA & Sync scripts -->
+<script src="{% static 'js/offline-db.js' %}"></script>
+<script src="{% static 'js/offline-manager.js' %}"></script>
 <!-- App scripts -->
 <script src="{% static 'js/app.js' %}"></script>
 

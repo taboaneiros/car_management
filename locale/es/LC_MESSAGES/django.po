@@ -1,0 +1,167 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Car Management\n"
+"POT-Creation-Date: 2026-09-30 01:00+0000\n"
+"PO-Revision-Date: 2026-09-30 01:00+0000\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es\n"
+
+msgid "Dashboard"
+msgstr "Panel de Control"
+
+msgid "Veículos"
+msgstr "Vehículos"
+
+msgid "Abastecimentos"
+msgstr "Repostajes"
+
+msgid "Despesas"
+msgstr "Gastos"
+
+msgid "Manutenções"
+msgstr "Mantenimientos"
+
+msgid "Lembretes"
+msgstr "Recordatorios"
+
+msgid "Viagens"
+msgstr "Viajes"
+
+msgid "Checklists"
+msgstr "Listas de Comprobación"
+
+msgid "Relatórios"
+msgstr "Informes"
+
+msgid "Gestão"
+msgstr "Gestión"
+
+msgid "Tipos de Serviço"
+msgstr "Tipos de Servicio"
+
+msgid "Categorias de Despesa"
+msgstr "Categorías de Gasto"
+
+msgid "Importar Drivvo"
+msgstr "Importar Drivvo"
+
+msgid "Meu Perfil"
+msgstr "Mi Perfil"
+
+msgid "Novo"
+msgstr "Nuevo"
+
+msgid "Salvar"
+msgstr "Guardar"
+
+msgid "Cancelar"
+msgstr "Cancelar"
+
+msgid "Excluir"
+msgstr "Eliminar"
+
+msgid "Editar"
+msgstr "Editar"
+
+msgid "Voltar"
+msgstr "Volver"
+
+msgid "Exportar"
+msgstr "Exportar"
+
+msgid "Veículo"
+msgstr "Vehículo"
+
+msgid "Título / Descrição"
+msgstr "Título / Descripción"
+
+msgid "Tipo de Lembrete"
+msgstr "Tipo de Recordatorio"
+
+msgid "Tipo de Serviço"
+msgstr "Tipo de Servicio"
+
+msgid "Data Limite"
+msgstr "Fecha Límite"
+
+msgid "Odômetro Limite (km)"
+msgstr "Odómetro Límite (km)"
+
+msgid "Avisar com antecedência (dias)"
+msgstr "Avisar con días de anticipación"
+
+msgid "Avisar com antecedência (km)"
+msgstr "Avisar con km de anticipación"
+
+msgid "Repetir este lembrete periodicamente"
+msgstr "Repetir este recordatorio periódicamente"
+
+msgid "Repetir a cada (meses)"
+msgstr "Repetir cada (meses)"
+
+msgid "Repetir a cada (km)"
+msgstr "Repetir cada (km)"
+
+msgid "Enviar notificação por e-mail"
+msgstr "Enviar notificación por correo"
+
+msgid "Observações"
+msgstr "Observaciones"
+
+msgid "Identificação do Lembrete"
+msgstr "Identificación del Recordatorio"
+
+msgid "Critérios de Vencimento (Data ou Odômetro)"
+msgstr "Criterios de Vencimiento (Fecha u Odómetro)"
+
+msgid "Recorrência e Notificações"
+msgstr "Recurrencia y Notificaciones"
+
+msgid "Salvar Lembrete"
+msgstr "Guardar Recordatorio"
+
+msgid "Lembrete agendado com sucesso!"
+msgstr "¡Recordatorio programado con éxito!"
+
+msgid "Lembrete atualizado com sucesso!"
+msgstr "¡Recordatorio actualizado con éxito!"
+
+msgid "Lembrete excluído com sucesso."
+msgstr "Recordatorio eliminado con éxito."
+
+msgid "Manutenção"
+msgstr "Mantenimiento"
+
+msgid "Despesa / Imposto"
+msgstr "Gasto / Impuesto"
+
+msgid "Documento / CNH / IPVA"
+msgstr "Documento / Licencia"
+
+msgid "Outro"
+msgstr "Otro"
+
+msgid "Pendente"
+msgstr "Pendiente"
+
+msgid "Concluído"
+msgstr "Completado"
+
+msgid "Cancelado"
+msgstr "Cancelado"
+
+msgid "Inspeções e Checklists"
+msgstr "Inspecciones y Listas"
+
+msgid "Aprovado"
+msgstr "Aprobado"
+
+msgid "Atenção (com ressalvas)"
+msgstr "Atención (con reservas)"
+
+msgid "Reprovado (não conforme)"
+msgstr "Reprobado (no conforme)"
+

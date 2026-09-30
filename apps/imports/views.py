@@ -12,6 +12,9 @@ from django.shortcuts import redirect, render
 from .drivvo_parser import (
     extract_expenses,
     extract_refuelings,
+    extract_reminders,
+    extract_services,
+    extract_trips,
     extract_vehicles,
     parse_sections,
 )
@@ -24,7 +27,7 @@ def import_drivvo(request):
     Import page for Drivvo CSV files.
 
     Accepts a ``.csv`` file exported from the Drivvo app, parses the supported
-    sections (Veículo, Abastecimento, Despesa) and persists them for the
+    sections (Veículo, Abastecimento, Despesa, Serviço, Lembrete, Percurso) and persists them for the
     current user. Unsupported sections are reported but do not break the
     import.
     """
@@ -49,6 +52,9 @@ def import_drivvo(request):
                 "vehicles": extract_vehicles(sections),
                 "refuelings": extract_refuelings(sections),
                 "expenses": extract_expenses(sections),
+                "services": extract_services(sections),
+                "reminders": extract_reminders(sections),
+                "trips": extract_trips(sections),
                 "unsupported_sections": sections.get("unsupported_sections", []),
             }
 
@@ -59,8 +65,11 @@ def import_drivvo(request):
                 "Importação concluída! "
                 f"{result['vehicles_created']} veículos criados, "
                 f"{result['vehicles_updated']} atualizados, "
-                f"{result['refuelings_created']} abastecimentos e "
-                f"{result['expenses_created']} despesas importadas.",
+                f"{result['refuelings_created']} abastecimentos, "
+                f"{result['expenses_created']} despesas, "
+                f"{result['maintenances_created']} manutenções, "
+                f"{result['reminders_created']} lembretes e "
+                f"{result['trips_created']} viagens importadas.",
             )
 
             for warning in result["warnings"][:10]:

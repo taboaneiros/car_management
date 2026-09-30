@@ -9,6 +9,8 @@ from django.utils import timezone
 
 from apps.fuel.models import Refueling
 from apps.expenses.models import Expense
+from apps.maintenance.models import Maintenance
+from apps.reminders.services import ReminderService
 from apps.vehicles.models import Vehicle
 
 
@@ -43,10 +45,16 @@ class DashboardSelectors:
             "occurred_at__gte": start_of_month,
             "occurred_at__lte": today,
         }
+        maintenance_filter = {
+            "vehicle__owner_primary": user,
+            "occurred_at__gte": start_of_month,
+            "occurred_at__lte": today,
+        }
 
         if vehicle:
             fuel_filter["vehicle"] = vehicle
             expense_filter["vehicle"] = vehicle
+            maintenance_filter["vehicle"] = vehicle
 
         # Fuel totals
         fuel_agg = Refueling.objects.filter(**fuel_filter).aggregate(
@@ -61,15 +69,24 @@ class DashboardSelectors:
             count=Count("id"),
         )
 
+        # Maintenance totals
+        maintenance_agg = Maintenance.objects.filter(**maintenance_filter).aggregate(
+            total=Sum("total_amount"),
+            count=Count("id"),
+        )
+
         fuel_total = fuel_agg["total"] or Decimal("0")
         expenses_total = expense_agg["total"] or Decimal("0")
+        maintenance_total = maintenance_agg["total"] or Decimal("0")
 
         return {
             "fuel_total": fuel_total,
             "expenses_total": expenses_total,
-            "total_spent": fuel_total + expenses_total,
+            "maintenance_total": maintenance_total,
+            "total_spent": fuel_total + expenses_total + maintenance_total,
             "refuelings_count": fuel_agg["count"] or 0,
             "expenses_count": expense_agg["count"] or 0,
+            "maintenances_count": maintenance_agg["count"] or 0,
             "total_liters": fuel_agg["total_liters"] or Decimal("0"),
         }
 
@@ -83,7 +100,7 @@ class DashboardSelectors:
             vehicle: Optional vehicle to filter by
         
         Returns:
-            dict with fuel_total, expenses_total, total_spent
+            dict with fuel_total, expenses_total, maintenance_total, total_spent
         """
         today = timezone.now().date()
         start_of_year = today.replace(month=1, day=1)
@@ -98,10 +115,16 @@ class DashboardSelectors:
             "occurred_at__gte": start_of_year,
             "occurred_at__lte": today,
         }
+        maintenance_filter = {
+            "vehicle__owner_primary": user,
+            "occurred_at__gte": start_of_year,
+            "occurred_at__lte": today,
+        }
 
         if vehicle:
             fuel_filter["vehicle"] = vehicle
             expense_filter["vehicle"] = vehicle
+            maintenance_filter["vehicle"] = vehicle
 
         fuel_total = Refueling.objects.filter(**fuel_filter).aggregate(
             total=Sum("total_amount"),
@@ -111,10 +134,15 @@ class DashboardSelectors:
             total=Sum("amount"),
         )["total"] or Decimal("0")
 
+        maintenance_total = Maintenance.objects.filter(**maintenance_filter).aggregate(
+            total=Sum("total_amount"),
+        )["total"] or Decimal("0")
+
         return {
             "fuel_total": fuel_total,
             "expenses_total": expenses_total,
-            "total_spent": fuel_total + expenses_total,
+            "maintenance_total": maintenance_total,
+            "total_spent": fuel_total + expenses_total + maintenance_total,
         }
 
     @staticmethod
@@ -186,14 +214,43 @@ class DashboardSelectors:
             count=Count("id"),
         )
 
+        # Maintenance stats
+        maintenance_stats = Maintenance.objects.filter(vehicle=vehicle).aggregate(
+            total=Sum("total_amount"),
+            count=Count("id"),
+        )
+
         return {
             "odometer": vehicle.current_odometer_cache,
             "avg_consumption": fuel_stats["avg_consumption"],
             "total_fuel_cost": fuel_stats["total_cost"] or Decimal("0"),
             "total_expenses": expense_stats["total"] or Decimal("0"),
+            "total_maintenance_cost": maintenance_stats["total"] or Decimal("0"),
             "refuelings_count": fuel_stats["count"] or 0,
             "expenses_count": expense_stats["count"] or 0,
+            "maintenances_count": maintenance_stats["count"] or 0,
         }
+
+    @staticmethod
+    def get_recent_maintenances(user, limit=5, vehicle=None):
+        """
+        Get recent maintenances for the user.
+        """
+        queryset = Maintenance.objects.filter(
+            vehicle__owner_primary=user,
+        ).select_related("vehicle", "service_type")
+
+        if vehicle:
+            queryset = queryset.filter(vehicle=vehicle)
+
+        return queryset.order_by("-occurred_at", "-odometer")[:limit]
+
+    @staticmethod
+    def get_urgent_reminders(user, vehicle=None):
+        """
+        Get active reminders summary for the dashboard.
+        """
+        return ReminderService.get_user_reminders_summary(user, vehicle=vehicle)
 
     @staticmethod
     def get_monthly_costs_chart_data(user, months=6, vehicle=None):
@@ -206,7 +263,7 @@ class DashboardSelectors:
             vehicle: Optional vehicle to filter by
         
         Returns:
-            list of dicts with month, fuel, expenses
+            list of dicts with month, fuel, expenses, maintenance, total
         """
         today = timezone.now().date()
         data = []
@@ -232,10 +289,16 @@ class DashboardSelectors:
                 "occurred_at__gte": month_start,
                 "occurred_at__lte": month_end,
             }
+            maintenance_filter = {
+                "vehicle__owner_primary": user,
+                "occurred_at__gte": month_start,
+                "occurred_at__lte": month_end,
+            }
 
             if vehicle:
                 fuel_filter["vehicle"] = vehicle
                 expense_filter["vehicle"] = vehicle
+                maintenance_filter["vehicle"] = vehicle
 
             fuel_total = Refueling.objects.filter(**fuel_filter).aggregate(
                 total=Sum("total_amount"),
@@ -245,11 +308,16 @@ class DashboardSelectors:
                 total=Sum("amount"),
             )["total"] or Decimal("0")
 
+            maintenance_total = Maintenance.objects.filter(**maintenance_filter).aggregate(
+                total=Sum("total_amount"),
+            )["total"] or Decimal("0")
+
             data.append({
                 "month": month_start.strftime("%b/%y"),
                 "fuel": float(fuel_total),
                 "expenses": float(expenses_total),
-                "total": float(fuel_total + expenses_total),
+                "maintenance": float(maintenance_total),
+                "total": float(fuel_total + expenses_total + maintenance_total),
             })
 
         return data

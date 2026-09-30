@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Manutenções - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Manutenções</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-tools me-2 text-primary"></i>Manutenções</h1>
+            <p class="text-muted small mb-0">Controle de serviços preventivos e corretivos dos seus veículos.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download me-1"></i>Exportar
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="{% url 'reports:quick_export' 'maintenances' %}?format=xlsx{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'reports:quick_export' 'maintenances' %}?format=csv{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}"><i class="bi bi-file-earmark-text me-2 text-primary"></i>CSV (.csv)</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'reports:export' %}?entity=maintenances"><i class="bi bi-sliders me-2"></i>Personalizado...</a></li>
+                </ul>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-plus-circle me-1"></i>Nova Manutenção
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="{% url 'maintenance:create' %}"><i class="bi bi-car-front me-2"></i>Selecionar veículo...</a></li>
+                    {% if vehicles %}
+                    <li><hr class="dropdown-divider"></li>
+                    {% for v in vehicles %}
+                    <li><a class="dropdown-item" href="{% url 'maintenance:create_for_vehicle' v.id %}"><i class="bi bi-tools me-2 text-primary"></i>{{ v.name }}</a></li>
+                    {% endfor %}
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-end"
+                  hx-get="{% url 'maintenance:list' %}"
+                  hx-target="#maintenanceTableCard"
+                  hx-select="#maintenanceTableCard"
+                  hx-swap="outerHTML"
+                  hx-trigger="change delay:350ms, submit">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold" for="m-vehicle">Veículo</label>
+                    <select name="vehicle" id="m-vehicle" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}" {% if request.GET.vehicle == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold" for="m-service-type">Tipo de Serviço</label>
+                    <select name="service_type" id="m-service-type" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        {% for st in service_types %}
+                        <option value="{{ st.id }}" {% if request.GET.service_type == st.id|stringformat:"s" %}selected{% endif %}>{{ st.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="m-type">Classificação</label>
+                    <select name="maintenance_type" id="m-type" class="form-select form-select-sm">
+                        <option value="">Todas</option>
+                        {% for val, label in maintenance_types %}
+                        <option value="{{ val }}" {% if request.GET.maintenance_type == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="m-start">Data Início</label>
+                    <input type="date" name="start_date" id="m-start" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
+                </div>
+                <div class="col-12 col-md-2 d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                    <a href="{% url 'maintenance:list' %}" class="btn btn-sm btn-outline-secondary" title="Limpar filtros"><i class="bi bi-x-lg"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if maintenances %}
+    <!-- Table Card -->
+    <div id="maintenanceTableCard">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted small"><i class="bi bi-database me-1"></i>{{ page_obj.paginator.count }} registro(s)</span>
+            <span class="badge bg-primary-subtle text-primary fs-6 px-3 py-2">
+                Total: R$ {{ total_maintenance_cost|floatformat:2 }}
+            </span>
+        </div>
+        <!-- Desktop Table View -->
+        <div class="d-none d-md-block">
+            <div class="cm-table-wrap">
+                <div class="cm-table-scroll">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data</th>
+                                <th>Serviço</th>
+                                <th class="d-none d-md-table-cell">Classificação</th>
+                                <th class="d-none d-lg-table-cell">Veículo</th>
+                                <th class="text-end">Odômetro</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in maintenances %}
+                            <tr>
+                                <td class="text-nowrap">{{ m.occurred_at|date:"d/m/Y" }}</td>
+                                <td>
+                                    <a href="{% url 'maintenance:detail' m.id %}" class="fw-semibold text-decoration-none">
+                                        {{ m.service_type.name|default:m.description|default:"Manutenção" }}
+                                    </a>
+                                    {% if m.workshop_name %}
+                                    <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ m.workshop_name }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if m.maintenance_type == 'preventive' %}
+                                    <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i>Preventiva</span>
+                                    {% else %}
+                                    <span class="badge bg-warning-subtle text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Corretiva</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    <span class="cm-chip"><i class="bi bi-truck"></i>{{ m.vehicle.name }}</span>
+                                </td>
+                                <td class="text-end text-muted">{{ m.odometer }} km</td>
+                                <td class="text-end fw-semibold text-nowrap">R$ {{ m.total_amount|floatformat:2 }}</td>
+                                <td class="text-center text-nowrap">
+                                    <a href="{% url 'maintenance:detail' m.id %}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Ver detalhes">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'maintenance:update' m.id %}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'maintenance:delete' m.id %}" class="btn btn-sm btn-icon btn-ghost-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Card Feed View -->
+        <div class="d-md-none cm-mobile-card-list">
+            {% for m in maintenances %}
+            <div class="cm-mobile-card">
+                <div class="cm-mobile-card-header">
+                    <span class="badge bg-secondary-subtle text-body fw-semibold"><i class="bi bi-car-front me-1"></i>{{ m.vehicle.name }}</span>
+                    <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>{{ m.occurred_at|date:"d/m/Y" }}</span>
+                </div>
+                <div class="d-flex align-items-baseline justify-content-between mb-1">
+                    <div class="cm-mobile-card-primary-val text-primary">R$ {{ m.total_amount|floatformat:2 }}</div>
+                    {% if m.maintenance_type == 'preventive' %}
+                    <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i>Preventiva</span>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Corretiva</span>
+                    {% endif %}
+                </div>
+                <div class="cm-mobile-card-subtitle mb-2">
+                    <a href="{% url 'maintenance:detail' m.id %}" class="fw-bold text-decoration-none text-body">
+                        {{ m.service_type.name|default:m.description|default:"Manutenção" }}
+                    </a>
+                    {% if m.workshop_name %}<div class="text-muted small mt-1"><i class="bi bi-geo-alt me-1"></i>{{ m.workshop_name }}</div>{% endif %}
+                </div>
+                <div class="cm-mobile-card-footer">
+                    <span class="text-muted small"><i class="bi bi-speedometer2 me-1"></i>{{ m.odometer }} km</span>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'maintenance:detail' m.id %}" class="btn btn-outline-secondary px-2" title="Detalhes"><i class="bi bi-eye"></i></a>
+                        <a href="{% url 'maintenance:update' m.id %}" class="btn btn-outline-secondary px-2" title="Editar"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'maintenance:delete' m.id %}" class="btn btn-outline-danger px-2" title="Excluir"><i class="bi bi-trash"></i></a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav class="mt-4" aria-label="Paginação de manutenções">
+            <ul class="pagination pagination-sm justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="card">
+        <div class="cm-empty">
+            <div class="cm-empty-icon"><i class="bi bi-tools"></i></div>
+            <h4 class="cm-empty-title">Nenhuma manutenção registrada</h4>
+            <p class="cm-empty-text">Registre as manutenções preventivas e corretivas dos seus veículos para controlar os gastos e histórico mecânico.</p>
+            <a href="{% url 'maintenance:create' %}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle me-1"></i>Registrar Primeira Manutenção
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

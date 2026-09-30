@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Tipos de Serviço - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'maintenance:list' %}">Manutenções</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">Tipos de Serviço</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-gear me-2 text-primary"></i>Tipos de Serviço</h1>
+            <p class="text-muted small mb-0">Catálogo de serviços e revisões preventivas com intervalos recomendados.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'maintenance:list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar para Manutenções
+            </a>
+            <a href="{% url 'maintenance:service_type_create' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Novo Tipo de Serviço
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Intervalo Recomendado (km)</th>
+                        <th>Intervalo Recomendado (meses)</th>
+                        <th>Origem</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for st in service_types %}
+                    <tr>
+                        <td class="fw-semibold">{{ st.name }}</td>
+                        <td>{% if st.default_interval_km %}{{ st.default_interval_km }} km{% else %}--{% endif %}</td>
+                        <td>{% if st.default_interval_months %}{{ st.default_interval_months }} meses{% else %}--{% endif %}</td>
+                        <td>
+                            {% if st.is_system %}
+                            <span class="badge bg-secondary-subtle text-secondary">Sistema</span>
+                            {% else %}
+                            <span class="badge bg-primary-subtle text-primary">Personalizado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if not st.is_system and st.user == request.user %}
+                            <a href="{% url 'maintenance:service_type_update' st.id %}" class="btn btn-sm btn-icon btn-ghost-secondary" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">Padrão</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-4 text-muted">Nenhum tipo de serviço encontrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

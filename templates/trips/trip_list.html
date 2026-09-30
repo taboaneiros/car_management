@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Viagens e Percursos - Car Management{% endblock %}
+
+{% block breadcrumbs %}<span class="current">Viagens</span>{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-geo-alt me-2 text-primary"></i>Viagens e Percursos</h1>
+            <p class="text-muted small mb-0">Acompanhe seus deslocamentos, distâncias rodadas e custos de viagem.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download me-1"></i>Exportar
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="{% url 'reports:quick_export' 'trips' %}?format=xlsx{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'reports:quick_export' 'trips' %}?format=csv{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}"><i class="bi bi-file-earmark-text me-2 text-primary"></i>CSV (.csv)</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'reports:export' %}?entity=trips"><i class="bi bi-sliders me-2"></i>Personalizado...</a></li>
+                </ul>
+            </div>
+            <a href="{% url 'trips:create' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Nova Viagem
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3">
+                        <i class="bi bi-signpost-2 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Total de Viagens</div>
+                        <div class="fs-4 fw-bold">{{ trips_count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="p-3 bg-success bg-opacity-10 text-success rounded-3">
+                        <i class="bi bi-speedometer fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Distância Total</div>
+                        <div class="fs-4 fw-bold">{{ total_km|floatformat:1 }} <span class="fs-6 text-muted font-monospace">km</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-3">
+                        <i class="bi bi-cash-coin fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small">Custo Total</div>
+                        <div class="fs-4 fw-bold">R$ {{ total_cost|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold" for="t-vehicle">Veículo</label>
+                    <select name="vehicle" id="t-vehicle" class="form-select form-select-sm">
+                        <option value="">Todos os veículos</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}" {% if selected_vehicle == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold" for="t-purpose">Finalidade</label>
+                    <select name="purpose" id="t-purpose" class="form-select form-select-sm">
+                        <option value="">Todas</option>
+                        {% for val, label in purposes %}
+                        <option value="{{ val }}" {% if selected_purpose == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="t-start">A partir de</label>
+                    <input type="date" name="date_start" id="t-start" class="form-control form-control-sm" value="{{ date_start }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="t-end">Até</label>
+                    <input type="date" name="date_end" id="t-end" class="form-control form-control-sm" value="{{ date_end }}">
+                </div>
+                <div class="col-12 col-md-2 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    {% if selected_vehicle or selected_purpose or date_start or date_end %}
+                    <a href="{% url 'trips:list' %}" class="btn btn-sm btn-outline-secondary" title="Limpar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trips Table -->
+    <div class="card shadow-sm" id="tripsTableCard">
+        <!-- Desktop Table View -->
+        <div class="d-none d-md-block">
+            <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Veículo</th>
+                        <th>Trajeto</th>
+                        <th>Finalidade</th>
+                        <th class="text-end">Odômetro</th>
+                        <th class="text-end">Distância</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center" style="width: 100px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trip in trips %}
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">{{ trip.started_at|date:"d/m/Y" }}</div>
+                            <small class="text-muted">{{ trip.started_at|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-truck me-1 text-primary"></i>{{ trip.vehicle.name }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">
+                                {{ trip.origin }} <i class="bi bi-arrow-right text-muted small mx-1"></i> {{ trip.destination }}
+                            </div>
+                            {% if trip.driver_name %}
+                            <small class="text-muted"><i class="bi bi-person me-1"></i>{{ trip.driver_name }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if trip.purpose == "business" %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary">Trabalho</span>
+                            {% elif trip.purpose == "freight" %}
+                            <span class="badge bg-info bg-opacity-10 text-info">Frete</span>
+                            {% elif trip.purpose == "commute" %}
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary">Deslocamento</span>
+                            {% elif trip.purpose == "personal" %}
+                            <span class="badge bg-success bg-opacity-10 text-success">Pessoal</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark border">Outro</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <span class="small font-monospace">{{ trip.start_odometer }} → {{ trip.end_odometer|default:"-" }} km</span>
+                        </td>
+                        <td class="text-end fw-semibold">
+                            {% if trip.distance %}
+                            {{ trip.distance|floatformat:1 }} km
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if trip.total_cost %}
+                            <span class="fw-semibold text-success">R$ {{ trip.total_cost|floatformat:2 }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'trips:detail' trip.pk %}" class="btn btn-outline-secondary" title="Ver detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'trips:edit' trip.pk %}" class="btn btn-outline-secondary" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'trips:delete' trip.pk %}" class="btn btn-outline-danger" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-geo-alt fs-1 d-block mb-3 text-secondary"></i>
+                            <p class="mb-2">Nenhuma viagem registrada no período selecionado.</p>
+                            <a href="{% url 'trips:create' %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Registrar Primeira Viagem
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mobile Card Feed View -->
+    <div class="d-md-none cm-mobile-card-list p-3">
+        {% for trip in trips %}
+        <div class="cm-mobile-card">
+            <div class="cm-mobile-card-header">
+                <span class="badge bg-secondary-subtle text-body fw-semibold"><i class="bi bi-car-front me-1"></i>{{ trip.vehicle.name }}</span>
+                <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>{{ trip.started_at|date:"d/m/Y" }}</span>
+            </div>
+            <div class="d-flex align-items-baseline justify-content-between mb-1">
+                <div class="cm-mobile-card-primary-val text-info fs-5">
+                    {% if trip.distance %}{{ trip.distance|floatformat:1 }} km{% else %}-- km{% endif %}
+                </div>
+                {% if trip.purpose == "business" %}
+                <span class="badge bg-primary bg-opacity-10 text-primary">Trabalho</span>
+                {% elif trip.purpose == "freight" %}
+                <span class="badge bg-info bg-opacity-10 text-info">Frete</span>
+                {% elif trip.purpose == "commute" %}
+                <span class="badge bg-secondary bg-opacity-10 text-secondary">Deslocamento</span>
+                {% elif trip.purpose == "personal" %}
+                <span class="badge bg-success bg-opacity-10 text-success">Pessoal</span>
+                {% else %}
+                <span class="badge bg-light text-dark border">Outro</span>
+                {% endif %}
+            </div>
+            <div class="cm-mobile-card-subtitle mb-2">
+                <div class="fw-semibold text-body">
+                    {{ trip.origin }} <i class="bi bi-arrow-right text-muted small mx-1"></i> {{ trip.destination }}
+                </div>
+                {% if trip.driver_name %}<div class="text-muted small mt-1"><i class="bi bi-person me-1"></i>{{ trip.driver_name }}</div>{% endif %}
+            </div>
+            <div class="cm-mobile-card-footer">
+                <span class="text-muted small font-monospace">{{ trip.start_odometer }} → {{ trip.end_odometer|default:"-" }} km</span>
+                <div class="btn-group btn-group-sm">
+                    <a href="{% url 'trips:detail' trip.pk %}" class="btn btn-outline-secondary px-2" title="Ver detalhes"><i class="bi bi-eye"></i></a>
+                    <a href="{% url 'trips:edit' trip.pk %}" class="btn btn-outline-secondary px-2" title="Editar"><i class="bi bi-pencil"></i></a>
+                    <a href="{% url 'trips:delete' trip.pk %}" class="btn btn-outline-danger px-2" title="Excluir"><i class="bi bi-trash"></i></a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-geo-alt fs-1 d-block mb-2 text-secondary"></i>
+            <p class="mb-2">Nenhuma viagem registrada.</p>
+            <a href="{% url 'trips:create' %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Nova Viagem
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+        {% if is_paginated %}
+        <div class="card-footer bg-transparent py-3">
+            <nav aria-label="Paginação">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}{% if selected_purpose %}&purpose={{ selected_purpose }}{% endif %}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}{% if selected_purpose %}&purpose={{ selected_purpose }}{% endif %}">Próxima</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

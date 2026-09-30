@@ -20,6 +20,9 @@
         </div>
         <div class="btn-group">
             <a href="{% url 'vehicles:list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+            <a href="{% url 'reports:print_report' %}?vehicle={{ vehicle.id }}" target="_blank" class="btn btn-outline-secondary" title="Gerar relatório impresso / PDF">
+                <i class="bi bi-printer me-1"></i>Relatório
+            </a>
             <a href="{% url 'vehicles:update' vehicle.id %}" class="btn btn-soft"><i class="bi bi-pencil me-1"></i>Editar</a>
             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash me-1"></i>Excluir</button>
         </div>
@@ -126,6 +129,210 @@
                                 </tr>
                                 {% empty %}
                                 <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma despesa registrada.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Maintenances -->
+            <div class="card mb-3 mt-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-tools me-2 text-primary"></i>Últimas Manutenções</h5>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'maintenance:create_for_vehicle' vehicle.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i>Nova
+                        </a>
+                        <a href="{% url 'maintenance:list' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-soft">Ver todas</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Serviço</th>
+                                    <th class="d-none d-md-table-cell">Tipo</th>
+                                    <th class="text-end">Odômetro</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in recent_maintenances %}
+                                <tr>
+                                    <td class="text-nowrap">{{ m.occurred_at|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'maintenance:detail' m.id %}" class="fw-semibold text-decoration-none">
+                                            {{ m.service_type.name|default:m.description|default:"Manutenção" }}
+                                        </a>
+                                        {% if m.workshop_name %}<div class="text-muted small">{{ m.workshop_name }}</div>{% endif %}
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        {% if m.maintenance_type == 'preventive' %}
+                                        <span class="badge bg-success-subtle text-success">Preventiva</span>
+                                        {% else %}
+                                        <span class="badge bg-warning-subtle text-warning">Corretiva</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end text-muted">{{ m.odometer }} km</td>
+                                    <td class="text-end fw-semibold">R$ {{ m.total_amount|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma manutenção registrada.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Reminders -->
+            <div class="card mt-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-bell me-2 text-warning"></i>Lembretes Ativos</h5>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'reminders:create_for_vehicle' vehicle.id %}" class="btn btn-sm btn-warning text-dark">
+                            <i class="bi bi-plus-lg me-1"></i>Novo
+                        </a>
+                        <a href="{% url 'reminders:list' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-soft">Ver todos</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Lembrete</th>
+                                    <th>Meta / Prazo</th>
+                                    <th class="text-center">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in active_reminders %}
+                                <tr>
+                                    <td>
+                                        {% if r.is_overdue %}
+                                        <span class="badge bg-danger">Vencido</span>
+                                        {% elif r.is_due_soon %}
+                                        <span class="badge bg-warning text-dark">Próximo</span>
+                                        {% else %}
+                                        <span class="badge bg-success-subtle text-success">Em dia</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="fw-semibold">{{ r.title }}</td>
+                                    <td>
+                                        {% if r.due_date %}<div>{{ r.due_date|date:"d/m/Y" }}</div>{% endif %}
+                                        {% if r.due_odometer %}<div class="text-muted small">{{ r.due_odometer }} km</div>{% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'reminders:complete' r.id %}" class="btn btn-sm btn-success">
+                                            <i class="bi bi-check-lg me-1"></i>Concluir
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">Nenhum lembrete pendente para este veículo.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Trips -->
+            <div class="card mt-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-geo-alt me-2 text-info"></i>Últimas Viagens / Percursos</h5>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'trips:create' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-info text-white">
+                            <i class="bi bi-plus-lg me-1"></i>Nova
+                        </a>
+                        <a href="{% url 'trips:list' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-soft">Ver todas</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Trajeto</th>
+                                    <th>Finalidade</th>
+                                    <th class="text-end">Distância</th>
+                                    <th class="text-end">Custo Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for t in recent_trips %}
+                                <tr>
+                                    <td class="text-nowrap">{{ t.started_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'trips:detail' t.id %}" class="fw-semibold text-decoration-none">
+                                            {{ t.origin }} <i class="bi bi-arrow-right text-muted mx-1"></i> {{ t.destination }}
+                                        </a>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border">{{ t.get_purpose_display }}</span></td>
+                                    <td class="text-end fw-semibold">{% if t.distance %}{{ t.distance }} km{% else %}--{% endif %}</td>
+                                    <td class="text-end">{% if t.total_cost %}R$ {{ t.total_cost|floatformat:2 }}{% else %}--{% endif %}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma viagem registrada para este veículo.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Checklists -->
+            <div class="card mt-3">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0"><i class="bi bi-card-checklist me-2 text-success"></i>Últimos Checklists</h5>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'checklists:create' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-plus-lg me-1"></i>Novo
+                        </a>
+                        <a href="{% url 'checklists:list' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-soft">Ver todos</a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Modelo</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Odômetro</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in recent_checklists %}
+                                <tr>
+                                    <td class="text-nowrap">{{ c.checked_at|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ c.template.name }}</td>
+                                    <td>
+                                        {% if c.status == 'approved' %}
+                                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Aprovado</span>
+                                        {% elif c.status == 'warning' %}
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Atenção</span>
+                                        {% else %}
+                                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Reprovado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end text-muted">{{ c.odometer }} km</td>
+                                    <td class="text-center">
+                                        <a href="{% url 'checklists:detail' c.id %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-eye me-1"></i>Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="5" class="text-center text-muted py-4">Nenhum checklist registrado para este veículo.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>

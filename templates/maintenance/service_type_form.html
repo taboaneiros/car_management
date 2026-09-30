@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+{% if object %}Editar Tipo de Serviço{% else %}Novo Tipo de Serviço{% endif %} - Car Management
+{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'maintenance:list' %}">Manutenções</a>
+<span class="cm-breadcrumb-sep">/</span>
+<a href="{% url 'maintenance:service_type_list' %}">Tipos de Serviço</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">{% if object %}Editar{% else %}Novo{% endif %}</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear me-2 text-primary"></i>
+                        {% if object %}Editar Tipo de Serviço{% else %}Novo Tipo de Serviço{% endif %}
+                    </h5>
+                    <a href="{% url 'maintenance:service_type_list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

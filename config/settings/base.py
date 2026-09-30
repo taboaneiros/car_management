@@ -5,6 +5,7 @@ All settings common to all environments should be defined here.
 from pathlib import Path
 
 import environ
+from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -53,13 +54,20 @@ INSTALLED_APPS = [
     "apps.vehicles",
     "apps.fuel",
     "apps.expenses",
+    "apps.maintenance",
+    "apps.reminders",
+    "apps.trips",
+    "apps.checklists",
+    "apps.reports",
     "apps.dashboard",
     "apps.imports",
+    "apps.sync",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -163,6 +171,16 @@ TIME_ZONE = env("TIME_ZONE", default="America/Sao_Paulo")
 USE_I18N = True
 USE_TZ = True
 
+LANGUAGES = [
+    ("pt-br", _("Português (Brasil)")),
+    ("en", _("English")),
+    ("es", _("Español")),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
+
 # =============================================================================
 # STATIC AND MEDIA FILES
 # =============================================================================
@@ -219,3 +237,7 @@ PAGINATION_PAGE_SIZE = 20
 
 # Dashboard settings
 DASHBOARD_DEFAULT_DAYS = 30
+
+# Reminder settings
+REMINDER_DEFAULT_DAYS_BEFORE = 15
+REMINDER_DEFAULT_KM_BEFORE = 500

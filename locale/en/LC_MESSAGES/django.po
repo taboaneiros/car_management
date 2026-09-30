@@ -1,0 +1,167 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Car Management\n"
+"POT-Creation-Date: 2026-09-30 01:00+0000\n"
+"PO-Revision-Date: 2026-09-30 01:00+0000\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Veículos"
+msgstr "Vehicles"
+
+msgid "Abastecimentos"
+msgstr "Refuelings"
+
+msgid "Despesas"
+msgstr "Expenses"
+
+msgid "Manutenções"
+msgstr "Maintenances"
+
+msgid "Lembretes"
+msgstr "Reminders"
+
+msgid "Viagens"
+msgstr "Trips"
+
+msgid "Checklists"
+msgstr "Checklists"
+
+msgid "Relatórios"
+msgstr "Reports"
+
+msgid "Gestão"
+msgstr "Management"
+
+msgid "Tipos de Serviço"
+msgstr "Service Types"
+
+msgid "Categorias de Despesa"
+msgstr "Expense Categories"
+
+msgid "Importar Drivvo"
+msgstr "Import Drivvo"
+
+msgid "Meu Perfil"
+msgstr "My Profile"
+
+msgid "Novo"
+msgstr "New"
+
+msgid "Salvar"
+msgstr "Save"
+
+msgid "Cancelar"
+msgstr "Cancel"
+
+msgid "Excluir"
+msgstr "Delete"
+
+msgid "Editar"
+msgstr "Edit"
+
+msgid "Voltar"
+msgstr "Back"
+
+msgid "Exportar"
+msgstr "Export"
+
+msgid "Veículo"
+msgstr "Vehicle"
+
+msgid "Título / Descrição"
+msgstr "Title / Description"
+
+msgid "Tipo de Lembrete"
+msgstr "Reminder Type"
+
+msgid "Tipo de Serviço"
+msgstr "Service Type"
+
+msgid "Data Limite"
+msgstr "Due Date"
+
+msgid "Odômetro Limite (km)"
+msgstr "Due Odometer (km)"
+
+msgid "Avisar com antecedência (dias)"
+msgstr "Alert days before"
+
+msgid "Avisar com antecedência (km)"
+msgstr "Alert km before"
+
+msgid "Repetir este lembrete periodicamente"
+msgstr "Recurring reminder"
+
+msgid "Repetir a cada (meses)"
+msgstr "Repeat every (months)"
+
+msgid "Repetir a cada (km)"
+msgstr "Repeat every (km)"
+
+msgid "Enviar notificação por e-mail"
+msgstr "Send notification by email"
+
+msgid "Observações"
+msgstr "Notes"
+
+msgid "Identificação do Lembrete"
+msgstr "Reminder Identification"
+
+msgid "Critérios de Vencimento (Data ou Odômetro)"
+msgstr "Due Criteria (Date or Odometer)"
+
+msgid "Recorrência e Notificações"
+msgstr "Recurrence & Notifications"
+
+msgid "Salvar Lembrete"
+msgstr "Save Reminder"
+
+msgid "Lembrete agendado com sucesso!"
+msgstr "Reminder scheduled successfully!"
+
+msgid "Lembrete atualizado com sucesso!"
+msgstr "Reminder updated successfully!"
+
+msgid "Lembrete excluído com sucesso."
+msgstr "Reminder deleted successfully."
+
+msgid "Manutenção"
+msgstr "Maintenance"
+
+msgid "Despesa / Imposto"
+msgstr "Expense / Tax"
+
+msgid "Documento / CNH / IPVA"
+msgstr "Document / License"
+
+msgid "Outro"
+msgstr "Other"
+
+msgid "Pendente"
+msgstr "Pending"
+
+msgid "Concluído"
+msgstr "Completed"
+
+msgid "Cancelado"
+msgstr "Cancelled"
+
+msgid "Inspeções e Checklists"
+msgstr "Inspections and Checklists"
+
+msgid "Aprovado"
+msgstr "Approved"
+
+msgid "Atenção (com ressalvas)"
+msgstr "Attention (with warnings)"
+
+msgid "Reprovado (não conforme)"
+msgstr "Rejected (non-conforming)"
+

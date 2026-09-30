@@ -141,14 +141,15 @@ class Expense(models.Model):
     )
 
     # Optional link to reminder (for recurring expenses)
-#    reminder = models.ForeignKey(
-#        "reminders.Reminder",
-#        on_delete=models.SET_NULL,
-#        null=True,
-#        blank=True,
-#        related_name="expenses",
-#        verbose_name=_("reminder"),
-#    )
+    reminder = models.ForeignKey(
+        "reminders.Reminder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="expenses",
+        verbose_name=_("reminder"),
+    )
+
 
     # Timestamps
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)

@@ -14,9 +14,17 @@
         </div>
 
         <div class="d-flex gap-2">
-            <a href="{% url 'dashboard:export_refuelings_csv' %}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Exportar CSV
-            </a>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download me-1"></i>Exportar
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="{% url 'reports:quick_export' 'refuelings' %}?format=xlsx{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'reports:quick_export' 'refuelings' %}?format=csv{% if selected_vehicle %}&vehicle={{ selected_vehicle }}{% endif %}"><i class="bi bi-file-earmark-text me-2 text-primary"></i>CSV (.csv)</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'reports:export' %}?entity=refuelings"><i class="bi bi-sliders me-2"></i>Personalizado...</a></li>
+                </ul>
+            </div>
             <div class="dropdown">
                 <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-plus-circle me-1"></i>Novo Abastecimento
@@ -72,74 +80,114 @@
     {% if refuelings %}
     <!-- Table Card (HTMX swap target) -->
     <div id="fuelTableCard">
-        <div class="cm-table-wrap">
-            <div class="cm-table-scroll">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Data</th>
-                            <th>Veículo</th>
-                            <th class="text-end">Odômetro</th>
-                            <th class="text-end">Litros</th>
-                            <th class="text-end d-none d-md-table-cell">Preço/L</th>
-                            <th class="text-end">Total</th>
-                            <th class="text-center d-none d-md-table-cell" title="Tanque cheio"><i class="bi bi-droplet"></i></th>
-                            <th class="text-end d-none d-lg-table-cell">km/l</th>
-                            <th class="text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for refueling in refuelings %}
-                        <tr>
-                            <td class="text-nowrap">{{ refueling.occurred_at|date:"d/m/Y" }}</td>
-                            <td>{{ refueling.vehicle.name }}</td>
-                            <td class="text-end">{{ refueling.odometer|default:"--" }}</td>
-                            <td class="text-end">{{ refueling.liters|floatformat:2 }}</td>
-                            <td class="text-end d-none d-md-table-cell">R$ {{ refueling.price_per_liter|floatformat:3 }}</td>
-                            <td class="text-end fw-semibold">R$ {{ refueling.total_amount|floatformat:2 }}</td>
-                            <td class="text-center d-none d-md-table-cell">
-                                {% if refueling.is_full_tank %}<i class="bi bi-check-circle-fill text-success" title="Tanque cheio"></i>
-                                {% else %}<i class="bi bi-dash-circle text-muted" title="Abastecimento parcial"></i>{% endif %}
-                            </td>
-                            <td class="text-end d-none d-lg-table-cell">{% if refueling.consumption_km_l %}{{ refueling.consumption_km_l|floatformat:1 }}{% else %}--{% endif %}</td>
-                            <td class="text-center">
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'fuel:update' refueling.id %}" class="btn btn-outline-secondary" aria-label="Editar abastecimento" title="Editar"><i class="bi bi-pencil"></i></a>
-                                    <button type="button" class="btn btn-outline-danger" aria-label="Excluir abastecimento" title="Excluir" data-bs-toggle="modal" data-bs-target="#deleteModal{{ refueling.id }}"><i class="bi bi-trash"></i></button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- Delete Modal -->
-                        <div class="modal fade" id="deleteModal{{ refueling.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ refueling.id }}" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-sm">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h6 class="modal-title" id="deleteModalLabel{{ refueling.id }}">Excluir abastecimento?</h6>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        <!-- Desktop Table View -->
+        <div class="d-none d-md-block">
+            <div class="cm-table-wrap">
+                <div class="cm-table-scroll">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data</th>
+                                <th>Veículo</th>
+                                <th class="text-end">Odômetro</th>
+                                <th class="text-end">Litros</th>
+                                <th class="text-end d-none d-md-table-cell">Preço/L</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-center d-none d-md-table-cell" title="Tanque cheio"><i class="bi bi-droplet"></i></th>
+                                <th class="text-end d-none d-lg-table-cell">km/l</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for refueling in refuelings %}
+                            <tr>
+                                <td class="text-nowrap">{{ refueling.occurred_at|date:"d/m/Y" }}</td>
+                                <td>{{ refueling.vehicle.name }}</td>
+                                <td class="text-end">{{ refueling.odometer|default:"--" }}</td>
+                                <td class="text-end">{{ refueling.liters|floatformat:2 }}</td>
+                                <td class="text-end d-none d-md-table-cell">R$ {{ refueling.price_per_liter|floatformat:3 }}</td>
+                                <td class="text-end fw-semibold">R$ {{ refueling.total_amount|floatformat:2 }}</td>
+                                <td class="text-center d-none d-md-table-cell">
+                                    {% if refueling.is_full_tank %}<i class="bi bi-check-circle-fill text-success" title="Tanque cheio"></i>
+                                    {% else %}<i class="bi bi-dash-circle text-muted" title="Abastecimento parcial"></i>{% endif %}
+                                </td>
+                                <td class="text-end d-none d-lg-table-cell">{% if refueling.consumption_km_l %}{{ refueling.consumption_km_l|floatformat:1 }}{% else %}--{% endif %}</td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'fuel:update' refueling.id %}" class="btn btn-outline-secondary" aria-label="Editar abastecimento" title="Editar"><i class="bi bi-pencil"></i></a>
+                                        <button type="button" class="btn btn-outline-danger" aria-label="Excluir abastecimento" title="Excluir" data-bs-toggle="modal" data-bs-target="#deleteModal{{ refueling.id }}"><i class="bi bi-trash"></i></button>
                                     </div>
-                                    <div class="modal-body">
-                                        <p class="mb-0">Excluir o abastecimento de <strong>{{ refueling.vehicle.name }}</strong> em {{ refueling.occurred_at|date:"d/m/Y" }} (R$ {{ refueling.total_amount|floatformat:2 }})?</p>
-                                        <p class="text-danger small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não pode ser desfeita.</p>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                                        <form method="post" action="{% url 'fuel:delete' refueling.id %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Excluir</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Nenhum abastecimento encontrado para os filtros selecionados.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">Nenhum abastecimento encontrado para os filtros selecionados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </div>
+
+        <!-- Mobile Card Feed View -->
+        <div class="d-md-none cm-mobile-card-list">
+            {% for refueling in refuelings %}
+            <div class="cm-mobile-card">
+                <div class="cm-mobile-card-header">
+                    <span class="badge bg-secondary-subtle text-body fw-semibold"><i class="bi bi-car-front me-1"></i>{{ refueling.vehicle.name }}</span>
+                    <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>{{ refueling.occurred_at|date:"d/m/Y" }}</span>
+                </div>
+                <div class="d-flex align-items-baseline justify-content-between mb-1">
+                    <div class="cm-mobile-card-primary-val text-success">R$ {{ refueling.total_amount|floatformat:2 }}</div>
+                    {% if refueling.consumption_km_l %}
+                    <span class="badge bg-success-subtle text-success fw-bold"><i class="bi bi-speedometer me-1"></i>{{ refueling.consumption_km_l|floatformat:1 }} km/l</span>
+                    {% endif %}
+                </div>
+                <div class="cm-mobile-card-subtitle mb-2">
+                    <span>{{ refueling.liters|floatformat:2 }} L</span>
+                    {% if refueling.price_per_liter %}&middot; <span>R$ {{ refueling.price_per_liter|floatformat:3 }}/L</span>{% endif %}
+                    {% if refueling.station_name %}&middot; <span>{{ refueling.station_name }}</span>{% endif %}
+                </div>
+                <div class="cm-mobile-card-footer">
+                    <div class="d-flex align-items-center gap-2 text-muted">
+                        <span><i class="bi bi-speedometer2 me-1"></i>{{ refueling.odometer }} km</span>
+                        {% if refueling.is_full_tank %}
+                        <span class="badge bg-success-subtle text-success p-1" title="Tanque cheio"><i class="bi bi-droplet-fill"></i> Cheio</span>
+                        {% else %}
+                        <span class="badge bg-light text-muted border p-1">Parcial</span>
+                        {% endif %}
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'fuel:update' refueling.id %}" class="btn btn-outline-secondary px-2" aria-label="Editar"><i class="bi bi-pencil"></i></a>
+                        <button type="button" class="btn btn-outline-danger px-2" data-bs-toggle="modal" data-bs-target="#deleteModal{{ refueling.id }}" aria-label="Excluir"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Modal -->
+            <div class="modal fade" id="deleteModal{{ refueling.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ refueling.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h6 class="modal-title" id="deleteModalLabel{{ refueling.id }}">Excluir abastecimento?</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0">Excluir o abastecimento de <strong>{{ refueling.vehicle.name }}</strong> em {{ refueling.occurred_at|date:"d/m/Y" }} (R$ {{ refueling.total_amount|floatformat:2 }})?</p>
+                            <p class="text-danger small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não pode ser desfeita.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                            <form method="post" action="{% url 'fuel:delete' refueling.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Excluir</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
 
         {% if page_obj.has_other_pages %}

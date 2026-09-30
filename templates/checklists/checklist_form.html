@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Nova Inspeção / Checklist - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'checklists:list' %}">Checklists</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">Nova Inspeção</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h4 mb-0"><i class="bi bi-card-checklist me-2 text-primary"></i>Nova Inspeção Veicular</h1>
+                        <small class="text-muted">Preencha os dados e avalie as condições dos itens inspecionados.</small>
+                    </div>
+                    <a href="{% url 'checklists:list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar
+                    </a>
+                </div>
+
+                <div class="card-body p-4">
+                    <form method="post" id="checklistForm" novalidate>
+                        {% csrf_token %}
+                        {% if current_template %}
+                        <input type="hidden" name="template_id" value="{{ current_template.id }}">
+                        {% endif %}
+                        {% crispy form %}
+
+                        <!-- Template Items Section -->
+                        {% if grouped_items %}
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h5 class="mb-0"><i class="bi bi-list-check me-2 text-primary"></i>Itens da Inspeção</h5>
+                                    <small class="text-muted">Modelo: <strong>{{ current_template.name }}</strong></small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-success" id="btnMarkAllOk">
+                                    <i class="bi bi-check-all me-1"></i>Marcar Todos como OK
+                                </button>
+                            </div>
+
+                            {% for category, items in grouped_items.items %}
+                            <div class="card border mb-3">
+                                <div class="card-header bg-light py-2 fw-semibold text-uppercase small text-muted">
+                                    <i class="bi bi-folder2-open me-1"></i>{{ category }}
+                                </div>
+                                <div class="list-group list-group-flush">
+                                    {% for item in items %}
+                                    <div class="list-group-item p-3">
+                                        <div class="row align-items-center g-2">
+                                            <div class="col-12 col-md-5">
+                                                <div class="fw-semibold">{{ item.title }}</div>
+                                            </div>
+                                            <div class="col-12 col-md-7">
+                                                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-md-end">
+                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Status do item">
+                                                        <input type="radio" class="btn-check item-status-ok" name="item_status_{{ item.id }}" id="status_ok_{{ item.id }}" value="ok" checked>
+                                                        <label class="btn btn-outline-success" for="status_ok_{{ item.id }}">
+                                                            <i class="bi bi-check-lg me-1"></i>OK
+                                                        </label>
+
+                                                        <input type="radio" class="btn-check" name="item_status_{{ item.id }}" id="status_att_{{ item.id }}" value="attention">
+                                                        <label class="btn btn-outline-warning" for="status_att_{{ item.id }}">
+                                                            <i class="bi bi-exclamation-triangle me-1"></i>Atenção
+                                                        </label>
+
+                                                        <input type="radio" class="btn-check" name="item_status_{{ item.id }}" id="status_prob_{{ item.id }}" value="problem">
+                                                        <label class="btn btn-outline-danger" for="status_prob_{{ item.id }}">
+                                                            <i class="bi bi-x-circle me-1"></i>Problema
+                                                        </label>
+
+                                                        <input type="radio" class="btn-check" name="item_status_{{ item.id }}" id="status_na_{{ item.id }}" value="na">
+                                                        <label class="btn btn-outline-secondary" for="status_na_{{ item.id }}">
+                                                            N/A
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 mt-2">
+                                                <input type="text" name="item_notes_{{ item.id }}" class="form-control form-control-sm" placeholder="Observações específicas deste item (opcional)...">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-none d-md-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a href="{% url 'checklists:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-1"></i>Concluir Inspeção
+                            </button>
+                        </div>
+                        <div class="cm-mobile-form-actions d-md-none">
+                            <a href="{% url 'checklists:list' %}" class="btn btn-outline-secondary flex-fill">Cancelar</a>
+                            <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-check-lg me-1"></i>Concluir Inspeção</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnMarkAll = document.getElementById('btnMarkAllOk');
+    if (btnMarkAll) {
+        btnMarkAll.addEventListener('click', function() {
+            document.querySelectorAll('.item-status-ok').forEach(radio => {
+                radio.checked = true;
+            });
+        });
+    }
+
+    // Auto-reload on template change to show appropriate items
+    const templateSelect = document.getElementById('id_template');
+    if (templateSelect) {
+        if (!templateSelect.value && "{{ current_template.id|default:'' }}") {
+            templateSelect.value = "{{ current_template.id }}";
+        }
+        templateSelect.addEventListener('change', function() {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('template', this.value);
+            const vehicleSelect = document.getElementById('id_vehicle');
+            if (vehicleSelect && vehicleSelect.value) {
+                currentUrl.searchParams.set('vehicle', vehicleSelect.value);
+            }
+            window.location.href = currentUrl.toString();
+        });
+    }
+});
+</script>
+{% endblock %}
+

@@ -49,14 +49,18 @@ class VehicleDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         vehicle = self.object
 
-        # Total spent (refuelings + expenses)
+        # Total spent (refuelings + expenses + maintenances)
         total_refuelings = vehicle.refuelings.aggregate(
             total=models.Sum("total_amount")
         )["total"] or 0
         total_expenses = vehicle.expenses.aggregate(
             total=models.Sum("amount")
         )["total"] or 0
-        context["total_spent"] = total_refuelings + total_expenses
+        total_maintenances = vehicle.maintenances.aggregate(
+            total=models.Sum("total_amount")
+        )["total"] or 0
+        context["total_spent"] = total_refuelings + total_expenses + total_maintenances
+        context["total_maintenances"] = total_maintenances
 
         # Average consumption
         consumption = vehicle.refuelings.exclude(
@@ -71,6 +75,14 @@ class VehicleDetailView(LoginRequiredMixin, DetailView):
         context["recent_expenses"] = vehicle.expenses.select_related(
             "category"
         ).order_by("-occurred_at")[:5]
+        context["recent_maintenances"] = vehicle.maintenances.select_related(
+            "service_type"
+        ).order_by("-occurred_at", "-odometer")[:5]
+        context["active_reminders"] = vehicle.reminders.filter(
+            status="pending"
+        ).select_related("service_type").order_by("due_date", "due_odometer")[:5]
+        context["recent_trips"] = vehicle.trips.order_by("-started_at")[:5]
+        context["recent_checklists"] = vehicle.checklists.select_related("template").order_by("-checked_at")[:5]
 
         return context
 

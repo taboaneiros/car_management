@@ -1196,3 +1196,359 @@ a {
   color: var(--cm-primary);
   font-size: 2.6rem;
 }
+
+/* --------------------------------------------------------------------------
+   23. MOBILE-FIRST SMARTPHONE EXPERIENCE
+   -------------------------------------------------------------------------- */
+.cm-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  body {
+    padding-bottom: 72px; /* space for bottom nav bar */
+    overflow-x: hidden;
+  }
+
+  .cm-content {
+    padding: 0.85rem 0.75rem 2.5rem;
+  }
+
+  .cm-topbar {
+    padding: 0 0.75rem;
+    height: 56px;
+  }
+
+  /* Card padding on phones */
+  .card-body {
+    padding: 1rem 0.85rem;
+  }
+
+  /* Improved touch targets */
+  .btn, .form-control, .form-select {
+    min-height: 40px;
+  }
+
+  /* Tables: smooth horizontal scroll on touch screens */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Mobile bottom bar */
+  .cm-mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--cm-surface);
+    border-top: 1px solid var(--cm-border);
+    z-index: 1040;
+    box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.08);
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 0.5rem;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .cm-mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--cm-text-muted);
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 4px 6px;
+    border-radius: 8px;
+    flex: 1;
+    min-height: 48px;
+    transition: color 0.15s ease;
+  }
+
+  .cm-mobile-nav-item i {
+    font-size: 1.25rem;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .cm-mobile-nav-item.active {
+    color: var(--cm-primary);
+    font-weight: 600;
+  }
+
+  /* Floating center action button on mobile nav */
+  .cm-mobile-nav-fab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #fff !important;
+    background: var(--cm-primary);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-top: -18px;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.45);
+    border: 3px solid var(--cm-surface);
+    transition: transform 0.15s ease;
+  }
+
+  .cm-mobile-nav-fab:active {
+    transform: scale(0.92);
+  }
+
+  .cm-mobile-nav-fab i {
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+
+  /* Close button on mobile sidebar */
+  .cm-sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--cm-text-muted);
+    font-size: 1.2rem;
+  }
+
+  /* Compact Mobile Topbar */
+  .cm-mobile-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 1rem;
+    background: var(--cm-surface);
+    border-bottom: 1px solid var(--cm-border);
+    position: sticky;
+    top: 0;
+    z-index: 1025;
+  }
+
+  /* Mobile Card Feed for Lists (Dual-view) */
+  .cm-mobile-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .cm-mobile-card {
+    background: var(--cm-surface);
+    border: 1px solid var(--cm-border);
+    border-radius: 14px;
+    padding: 1rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .cm-mobile-card:active {
+    transform: scale(0.99);
+  }
+
+  .cm-mobile-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .cm-mobile-card-primary-val {
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-family: var(--cm-font-display);
+    color: var(--cm-text-main);
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+  }
+
+  .cm-mobile-card-subtitle {
+    font-size: 0.85rem;
+    color: var(--cm-text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .cm-mobile-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.65rem;
+    border-top: 1px dashed var(--cm-border);
+    font-size: 0.82rem;
+  }
+
+  /* Mobile Form Actions Sticky Bar */
+  .cm-mobile-form-actions {
+    position: sticky;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    background: var(--cm-surface);
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--cm-border);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 1020;
+    margin: 1.5rem -1rem -1rem -1rem;
+    border-radius: 0 0 12px 12px;
+  }
+
+  /* Form inputs mobile thumb sizing (prevents iOS auto-zoom) */
+  .form-control,
+  .form-select {
+    min-height: 46px;
+    font-size: 16px !important;
+  }
+
+  /* Mobile Touch-friendly Submit in Forms */
+  form input[type="submit"].btn-primary,
+  form button[type="submit"].btn-primary:not(.btn-sm):not(.btn-icon) {
+    min-height: 46px;
+    font-weight: 600;
+  }
+
+  /* Mobile KPI 2x2 Grid for Dashboard */
+  .cm-mobile-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .cm-mobile-kpi-card {
+    background: var(--cm-surface);
+    border: 1px solid var(--cm-border);
+    border-radius: 12px;
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .cm-mobile-kpi-card .kpi-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--cm-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.25rem;
+  }
+
+  .cm-mobile-kpi-card .kpi-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--cm-text-main);
+    line-height: 1.1;
+  }
+
+  /* Vehicle Chips Horizontal Scroll on Mobile */
+  .cm-vehicle-chips-scroll {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .cm-vehicle-chips-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cm-vehicle-chip {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--cm-border);
+    background: var(--cm-surface);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--cm-text-muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .cm-vehicle-chip.active {
+    background: var(--cm-primary);
+    color: #fff !important;
+    border-color: var(--cm-primary);
+  }
+}
+
+/* Network Status Pill */
+.cm-network-pill {
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.cm-network-pill:hover {
+  opacity: 0.9;
+}
+
+/* Quick Action Bottom Sheet Grid */
+.cm-action-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.cm-action-sheet-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.5rem;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--cm-text-main);
+  background: var(--cm-surface-alt, #f8fafc);
+  border: 1px solid var(--cm-border);
+  transition: transform 0.15s ease, background 0.15s ease;
+  text-align: center;
+}
+
+[data-bs-theme="dark"] .cm-action-sheet-btn {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cm-action-sheet-btn:active {
+  transform: scale(0.94);
+}
+
+.cm-action-sheet-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cm-action-sheet-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+

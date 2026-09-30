@@ -51,6 +51,12 @@ def dashboard_home(request):
     recent_expenses = DashboardSelectors.get_recent_expenses(
         user, limit=5, vehicle=active_vehicle
     )
+    recent_maintenances = DashboardSelectors.get_recent_maintenances(
+        user, limit=5, vehicle=active_vehicle
+    )
+    reminders_summary = DashboardSelectors.get_urgent_reminders(
+        user, vehicle=active_vehicle
+    )
 
     # Get chart data
     monthly_costs = DashboardSelectors.get_monthly_costs_chart_data(
@@ -72,6 +78,8 @@ def dashboard_home(request):
         "year_summary": year_summary,
         "recent_refuelings": recent_refuelings,
         "recent_expenses": recent_expenses,
+        "recent_maintenances": recent_maintenances,
+        "reminders_summary": reminders_summary,
         "monthly_costs": monthly_costs,
         "categories_breakdown": categories_breakdown,
         "vehicle_stats": vehicle_stats,

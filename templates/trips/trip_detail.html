@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Viagem {{ trip.origin }} para {{ trip.destination }} - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'trips:list' %}">Viagens</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">{{ trip.origin }} → {{ trip.destination }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-primary bg-opacity-10 text-primary mb-1">{{ trip.get_purpose_display }}</span>
+                        <h1 class="h4 mb-0">{{ trip.origin }} <i class="bi bi-arrow-right text-muted mx-1"></i> {{ trip.destination }}</h1>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'trips:edit' trip.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-pencil me-1"></i>Editar
+                        </a>
+                        <a href="{% url 'trips:delete' trip.pk %}" class="btn btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i>Excluir
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-12 col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted small">Veículo</div>
+                                <div class="fw-bold fs-5">
+                                    <a href="{% url 'vehicles:detail' trip.vehicle.pk %}" class="text-decoration-none">
+                                        <i class="bi bi-truck me-1"></i>{{ trip.vehicle.name }}
+                                    </a>
+                                </div>
+                                {% if trip.vehicle.plate %}
+                                <small class="text-muted font-monospace">{{ trip.vehicle.plate }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted small">Distância Percorrida</div>
+                                <div class="fw-bold fs-5 text-success">
+                                    {% if trip.distance %}{{ trip.distance|floatformat:1 }} km{% else %}-{% endif %}
+                                </div>
+                                <small class="text-muted font-monospace">{{ trip.start_odometer }} → {{ trip.end_odometer|default:"-" }} km</small>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Data e Hora Inicial</div>
+                            <div class="fw-semibold">{{ trip.started_at|date:"d/m/Y \à\s H:i" }}</div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Data e Hora Final</div>
+                            <div class="fw-semibold">
+                                {% if trip.ended_at %}
+                                {{ trip.ended_at|date:"d/m/Y \à\s H:i" }}
+                                {% else %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning">Em andamento</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if trip.driver_name %}
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Motorista</div>
+                            <div class="fw-semibold">{{ trip.driver_name }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if trip.rate_per_km %}
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Taxa por km</div>
+                            <div class="fw-semibold">R$ {{ trip.rate_per_km|floatformat:3 }} / km</div>
+                        </div>
+                        {% endif %}
+
+                        {% if trip.total_cost %}
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Custo Total / Valor</div>
+                            <div class="fw-bold fs-5 text-primary">R$ {{ trip.total_cost|floatformat:2 }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if trip.freight_amount %}
+                        <div class="col-12 col-md-6">
+                            <div class="text-muted small">Valor do Frete</div>
+                            <div class="fw-semibold">R$ {{ trip.freight_amount|floatformat:2 }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if trip.notes %}
+                        <div class="col-12">
+                            <div class="text-muted small mb-1">Observações</div>
+                            <div class="p-3 bg-light rounded-3 text-break">{{ trip.notes|linebreaks }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent py-3 d-flex justify-content-between">
+                    <small class="text-muted">Cadastrado em {{ trip.created_at|date:"d/m/Y H:i" }}</small>
+                    <a href="{% url 'trips:list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar para Viagens
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

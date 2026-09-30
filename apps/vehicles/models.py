@@ -138,6 +138,12 @@ class Vehicle(models.Model):
             return True
         return False
 
+    @property
+    def inspections(self):
+        """Alias for checklists relation for backwards compatibility and convenience."""
+        return self.checklists
+
+
 
 class VehicleOwnership(models.Model):
     """

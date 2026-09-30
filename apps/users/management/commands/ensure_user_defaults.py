@@ -48,6 +48,20 @@ class Command(BaseCommand):
             ("Outros", CategoryKind.OTHER),
         ]
         
+        default_service_types = [
+            ("Troca de Óleo e Filtro", 10000, 12),
+            ("Filtro de Ar do Motor", 10000, 12),
+            ("Filtro de Cabine (Ar Condicionado)", 10000, 12),
+            ("Filtro de Combustível", 10000, 12),
+            ("Pastilhas de Freio", 20000, 12),
+            ("Fluido de Freio", 20000, 24),
+            ("Correia Dentada", 50000, 48),
+            ("Velas de Ignição", 20000, 24),
+            ("Alinhamento e Balanceamento", 10000, 6),
+            ("Bateria", None, 36),
+            ("Revisão Preventiva Geral", 10000, 12),
+        ]
+        
         users = User.objects.all()
         self.stdout.write(f"Processing {users.count()} user(s)...")
         
@@ -56,7 +70,10 @@ class Command(BaseCommand):
         
         fuel_types_created = 0
         categories_created = 0
+        services_created = 0
         
+        from apps.maintenance.models import ServiceType
+
         with transaction.atomic():
             for user in users:
                 # Create fuel types
@@ -102,18 +119,102 @@ class Command(BaseCommand):
                             self.stdout.write(
                                 f"  Created category '{name}' for {user.email}"
                             )
+
+                # Create default service types
+                for name, km, months in default_service_types:
+                    if dry_run:
+                        exists = ServiceType.objects.filter(user=user, name=name).exists()
+                        if not exists:
+                            services_created += 1
+                            self.stdout.write(
+                                f"  Would create service type '{name}' for {user.email}"
+                            )
+                    else:
+                        _, created = ServiceType.objects.get_or_create(
+                            user=user,
+                            name=name,
+                            defaults={
+                                "default_interval_km": km,
+                                "default_interval_months": months,
+                                "is_system": True,
+                            }
+                        )
+                        if created:
+                            services_created += 1
+                            self.stdout.write(
+                                f"  Created service type '{name}' for {user.email}"
+                            )
+
+            # Create system checklist templates if not present
+            from apps.checklists.models import ChecklistTemplate, ChecklistTemplateItem
+
+            default_templates = [
+                (
+                    "Inspeção Pré-Viagem",
+                    "Checklist completo para viagens longas e trajetos rodoviários.",
+                    [
+                        ("Fluidos", "Nível do óleo do motor", 1),
+                        ("Fluidos", "Líquido de arrefecimento (radiador)", 2),
+                        ("Fluidos", "Fluido de freio", 3),
+                        ("Fluidos", "Água do limpador de para-brisa", 4),
+                        ("Pneus e Rodas", "Calibragem e desgaste dos 4 pneus", 5),
+                        ("Pneus e Rodas", "Calibragem e estado do estepe", 6),
+                        ("Iluminação", "Faróis dianteiros (baixo e alto)", 7),
+                        ("Iluminação", "Lanternas, luzes de freio e ré", 8),
+                        ("Iluminação", "Luzes de seta / pisca-alerta", 9),
+                        ("Segurança", "Palhetas do limpador de para-brisa", 10),
+                        ("Segurança", "Cintos de segurança de todos os ocupantes", 11),
+                        ("Segurança", "Triângulo, macaco e chave de roda", 12),
+                        ("Segurança", "Documentação do veículo e CNH", 13),
+                    ],
+                ),
+                (
+                    "Checagem Semanal Básica",
+                    "Inspeção preventiva rápida para uso urbano no dia a dia.",
+                    [
+                        ("Fluidos", "Nível de óleo do motor", 1),
+                        ("Fluidos", "Nível de água do radiador", 2),
+                        ("Pneus", "Calibragem dos pneus", 3),
+                        ("Iluminação", "Faróis e luzes de freio", 4),
+                        ("Geral", "Verificação visual de vazamentos sob o veículo", 5),
+                    ],
+                ),
+            ]
+
+            templates_created = 0
+            for tmpl_name, tmpl_desc, items in default_templates:
+                if dry_run:
+                    if not ChecklistTemplate.objects.filter(is_system=True, name=tmpl_name).exists():
+                        templates_created += 1
+                else:
+                    tmpl, created = ChecklistTemplate.objects.get_or_create(
+                        is_system=True,
+                        name=tmpl_name,
+                        defaults={"description": tmpl_desc, "is_active": True},
+                    )
+                    if created:
+                        templates_created += 1
+                        for cat, title, order in items:
+                            ChecklistTemplateItem.objects.create(
+                                template=tmpl,
+                                category=cat,
+                                title=title,
+                                order=order,
+                            )
         
         if dry_run:
             self.stdout.write(
                 self.style.WARNING(
-                    f"Dry run complete. Would create {fuel_types_created} fuel type(s) "
-                    f"and {categories_created} categor(y/ies)."
+                    f"Dry run complete. Would create {fuel_types_created} fuel type(s), "
+                    f"{categories_created} categor(y/ies), {services_created} service type(s), "
+                    f"and {templates_created} checklist template(s)."
                 )
             )
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Successfully created {fuel_types_created} fuel type(s) "
-                    f"and {categories_created} categor(y/ies)."
+                    f"Successfully created {fuel_types_created} fuel type(s), "
+                    f"{categories_created} categor(y/ies), {services_created} service type(s), "
+                    f"and {templates_created} checklist template(s)."
                 )
             )

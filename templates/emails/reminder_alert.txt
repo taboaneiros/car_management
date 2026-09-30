@@ -1,0 +1,20 @@
+Olá, {{ user.get_short_name|default:user.email }}!
+
+Este é um aviso de lembrete do Car Management para o seu veículo:
+
+Veículo: {{ vehicle.name }} ({{ vehicle.brand }} {{ vehicle.model }}{% if vehicle.plate %} - Placa: {{ vehicle.plate }}{% endif %})
+Lembrete: {{ reminder.title }}
+Status: {{ status_label }}
+
+DETALHES DO LEMBRETE:
+{% if reminder.due_date %}• Data limite: {{ reminder.due_date|date:"d/m/Y" }}{% endif %}
+{% if reminder.due_odometer %}• Odômetro limite: {{ reminder.due_odometer }} km{% endif %}
+• Odômetro atual do veículo: {{ vehicle.current_odometer_cache }} km
+{% if reminder.notes %}• Observações: {{ reminder.notes }}{% endif %}
+
+Acesse o sistema para visualizar os detalhes ou marcar este lembrete como concluído:
+{{ site_url }}/reminders/
+
+Atenciosamente,
+Equipe Car Management
+

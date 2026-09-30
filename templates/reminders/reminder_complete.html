@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Concluir Lembrete - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'reminders:list' %}">Lembretes</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">Concluir</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-7">
+            <div class="card border-success">
+                <div class="card-header bg-success-subtle text-success d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-check-circle me-2"></i>Concluir Lembrete
+                    </h5>
+                    <a href="{% url 'reminders:list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="p-3 mb-4 rounded-3 bg-light border">
+                        <h5 class="mb-1">{{ reminder.title }}</h5>
+                        <p class="text-muted small mb-0">
+                            Veículo: <strong>{{ reminder.vehicle.name }}</strong>
+                            {% if reminder.service_type %} &middot; Tipo: <strong>{{ reminder.service_type.name }}</strong>{% endif %}
+                            {% if reminder.is_recurring %} &middot; <span class="badge bg-info-subtle text-info">Recorrente</span>{% endif %}
+                        </p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        {% crispy form %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

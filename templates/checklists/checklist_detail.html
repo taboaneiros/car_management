@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Inspeção {{ inspection.title }} - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'checklists:list' %}">Checklists</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">{{ inspection.title }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h1 class="h4 mb-0">{{ inspection.title }}</h1>
+                            {% if inspection.status == "approved" %}
+                            <span class="badge bg-success bg-opacity-10 text-success"><i class="bi bi-check-circle me-1"></i>Aprovado</span>
+                            {% elif inspection.status == "pending" %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning"><i class="bi bi-clock-history me-1"></i>Pendente</span>
+                            {% elif inspection.status == "warning" %}
+                            <span class="badge bg-warning bg-opacity-10 text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Com Ressalvas</span>
+                            {% elif inspection.status == "rejected" %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger"><i class="bi bi-x-circle me-1"></i>Reprovado</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ inspection.get_status_display }}</span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">Realizada em {{ inspection.checked_at|date:"d/m/Y \à\s H:i" }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'checklists:delete' inspection.pk %}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i>Excluir
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- General Details -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted small">Veículo</div>
+                                <div class="fw-bold">
+                                    <a href="{% url 'vehicles:detail' inspection.vehicle.pk %}" class="text-decoration-none">
+                                        <i class="bi bi-truck me-1"></i>{{ inspection.vehicle.name }}
+                                    </a>
+                                </div>
+                                {% if inspection.vehicle.plate %}
+                                <small class="text-muted font-monospace">{{ inspection.vehicle.plate }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted small">Odômetro no momento</div>
+                                <div class="fw-bold">
+                                    {% if inspection.odometer %}{{ inspection.odometer }} km{% else %}Não informado{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted small">Modelo Utilizado</div>
+                                <div class="fw-bold">
+                                    {{ inspection.template.name|default:"Personalizado" }}
+                                </div>
+                            </div>
+                        </div>
+                        {% if inspection.notes %}
+                        <div class="col-12">
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="text-muted small mb-1">Observações Gerais</div>
+                                <div>{{ inspection.notes|linebreaks }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Issues Highlight -->
+                    {% if problem_items %}
+                    <div class="alert alert-danger mb-4 shadow-sm">
+                        <h6 class="alert-heading fw-bold mb-2"><i class="bi bi-x-octagon me-2"></i>Não-conformidades Críticas Detectadas ({{ problem_items|length }})</h6>
+                        <ul class="mb-0 ps-3">
+                            {% for item in problem_items %}
+                            <li>
+                                <strong>{{ item.title }}</strong> ({{ item.category }}):
+                                {% if item.notes %}{{ item.notes }}{% else %}<span class="text-muted">Item reprovado</span>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if attention_items %}
+                    <div class="alert alert-warning mb-4 shadow-sm">
+                        <h6 class="alert-heading fw-bold mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Itens com Ressalvas / Atenção ({{ attention_items|length }})</h6>
+                        <ul class="mb-0 ps-3">
+                            {% for item in attention_items %}
+                            <li>
+                                <strong>{{ item.title }}</strong> ({{ item.category }}):
+                                {% if item.notes %}{{ item.notes }}{% else %}<span class="text-muted">Atenção requerida</span>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- Full Items List -->
+                    <h5 class="mb-3 pt-2 border-top"><i class="bi bi-list-check me-2 text-primary"></i>Detalhamento de Itens</h5>
+
+                    {% for category, items in grouped_items.items %}
+                    <div class="card border mb-3">
+                        <div class="card-header bg-light py-2 fw-semibold text-uppercase small text-muted">
+                            {{ category }}
+                        </div>
+                        <div class="list-group list-group-flush">
+                            {% for item in items %}
+                            <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center py-2 px-3">
+                                <div>
+                                    <span class="fw-semibold">{{ item.title }}</span>
+                                    {% if item.notes %}
+                                    <div class="small text-muted fst-italic"><i class="bi bi-chat-left-text me-1"></i>{{ item.notes }}</div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if item.status == "ok" %}
+                                    <span class="badge bg-success bg-opacity-10 text-success"><i class="bi bi-check-lg me-1"></i>Conforme</span>
+                                    {% elif item.status == "attention" %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Atenção</span>
+                                    {% elif item.status == "problem" %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger"><i class="bi bi-x-circle me-1"></i>Problema</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-secondary border">Não se aplica</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="card-footer bg-transparent py-3 d-flex justify-content-between">
+                    <small class="text-muted">ID: {{ inspection.id }}</small>
+                    <a href="{% url 'checklists:list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar para Checklists
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -34,7 +34,7 @@ class ExpenseAdmin(admin.ModelAdmin):
     )
     list_filter = ("category", "is_recurring")
     search_fields = ("vehicle__name", "description", "vendor_name")
-    raw_id_fields = ("vehicle", "category")#, "reminder")
+    raw_id_fields = ("vehicle", "category", "reminder")
     readonly_fields = ("created_at", "updated_at", "id")
 
     fieldsets = (

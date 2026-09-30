@@ -20,8 +20,9 @@ djangorestframework>=3.15.0
 # Image processing
 Pillow>=10.0.0
 
-# CSV encoding detection (used by the Drivvo importer)
+# CSV and Excel export/import
 chardet>=5.0.0
+openpyxl>=3.1.2
 
 # Development
 pytest>=8.0.0

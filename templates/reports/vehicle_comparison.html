@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Comparativo Entre Veículos - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'reports:hub' %}">Relatórios</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">Comparativo Entre Veículos</span>
+{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-intersect me-2 text-primary"></i>Comparativo Entre Veículos</h1>
+            <p class="text-muted small mb-0">Compare lado a lado o desempenho, consumo e custo por quilômetro da sua frota.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'reports:hub' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar aos Relatórios
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-12 col-md-5">
+                    <label class="form-label small fw-semibold">Selecione os Veículos para Comparar:</label>
+                    <div class="d-flex flex-wrap gap-3 pt-1">
+                        {% for v in vehicles %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="vehicles" value="{{ v.id }}" id="chk_{{ v.id }}"
+                                   {% if not selected_ids or v.id|stringformat:"s" in selected_ids %}checked{% endif %}>
+                            <label class="form-check-label small" for="chk_{{ v.id }}">
+                                {{ v.name }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="cmp-start">De</label>
+                    <input type="date" name="date_start" id="cmp-start" class="form-control form-control-sm" value="{{ date_start }}">
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold" for="cmp-end">Até</label>
+                    <input type="date" name="date_end" id="cmp-end" class="form-control form-control-sm" value="{{ date_end }}">
+                </div>
+
+                <div class="col-12 col-md-3 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                        <i class="bi bi-arrow-repeat me-1"></i>Atualizar Comparativo
+                    </button>
+                    {% if selected_ids or date_start or date_end %}
+                    <a href="{% url 'reports:comparison' %}" class="btn btn-sm btn-outline-secondary" title="Limpar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Comparison Highlights -->
+    {% if comparison.best_consumption or comparison.lowest_cost_km %}
+    <div class="row g-3 mb-4">
+        {% if comparison.best_consumption %}
+        <div class="col-12 col-md-6">
+            <div class="card border-0 shadow-sm bg-success bg-opacity-10 border-start border-success border-4">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="p-3 bg-success text-white rounded-circle">
+                        <i class="bi bi-trophy-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-success small fw-semibold text-uppercase">Melhor Eficiência de Combustível</div>
+                        <div class="fs-5 fw-bold">{{ comparison.best_consumption.vehicle.name }}</div>
+                        <div class="small text-muted">Consumo médio de <strong>{{ comparison.best_consumption.avg_consumption }} km/l</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if comparison.lowest_cost_km %}
+        <div class="col-12 col-md-6">
+            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 border-start border-primary border-4">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="p-3 bg-primary text-white rounded-circle">
+                        <i class="bi bi-piggy-bank-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-primary small fw-semibold text-uppercase">Menor Custo por Quilômetro</div>
+                        <div class="fs-5 fw-bold">{{ comparison.lowest_cost_km.vehicle.name }}</div>
+                        <div class="small text-muted">Apenas <strong>R$ {{ comparison.lowest_cost_km.cost_per_km }} por km</strong> rodado</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Side-by-Side Comparison Table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-transparent py-3">
+            <h5 class="card-title mb-0"><i class="bi bi-table me-2 text-primary"></i>Tabela Comparativa Lado a Lado</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0 text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start" style="width: 250px;">Métrica / Indicador</th>
+                        {% for item in comparison.vehicles_data %}
+                        <th>
+                            <div class="fw-bold">{{ item.vehicle.name }}</div>
+                            <small class="text-muted font-monospace">{{ item.vehicle.plate|default:"Sem placa" }}</small>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-start fw-semibold"><i class="bi bi-cash me-2 text-primary"></i>Custo Total de Posse (TCO)</td>
+                        {% for item in comparison.vehicles_data %}
+                        <td class="fw-bold text-primary">R$ {{ item.total_tco|floatformat:2 }}</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td class="text-start fw-semibold"><i class="bi bi-speedometer2 me-2 text-danger"></i>Custo por km rodado (R$/km)</td>
+                        {% for item in comparison.vehicles_data %}
+                        <td class="fw-bold {% if item == comparison.lowest_cost_km %}text-success bg-success bg-opacity-10{% endif %}">
+                            R$ {{ item.cost_per_km|floatformat:2 }}
+                            {% if item == comparison.lowest_cost_km %}
+                            <i class="bi bi-check-circle-fill text-success ms-1" title="Menor custo"></i>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td class="text-start fw-semibold"><i class="bi bi-fuel-pump me-2 text-success"></i>Consumo Médio (km/l)</td>
+                        {% for item in comparison.vehicles_data %}
+                        <td class="fw-bold {% if item == comparison.best_consumption %}text-success bg-success bg-opacity-10{% endif %}">
+                            {{ item.avg_consumption|floatformat:1 }} km/l
+                            {% if item == comparison.best_consumption %}
+                            <i class="bi bi-star-fill text-warning ms-1" title="Melhor consumo"></i>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td class="text-start fw-semibold"><i class="bi bi-geo-alt me-2 text-secondary"></i>Quilômetros Rodados</td>
+                        {% for item in comparison.vehicles_data %}
+                        <td>{{ item.distance_km }} km</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td class="text-start fw-semibold"><i class="bi bi-droplet-half me-2 text-info"></i>Total Abastecido</td>
+                        {% for item in comparison.vehicles_data %}
+                        <td>{{ item.fuel_liters|floatformat:1 }} L <small class="text-muted">(R$ {{ item.fuel_cost|floatformat:2 }})</small></td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td class="text-start fw-semibold"><i class="bi bi-tools me-2 text-warning"></i>Gastos com Manutenção</td>
+                        {% for item in comparison.vehicles_data %}
+                        <td>R$ {{ item.maintenance_cost|floatformat:2 }} <small class="text-muted">({{ item.maintenances_count }} ordens)</small></td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td class="text-start fw-semibold"><i class="bi bi-receipt me-2 text-secondary"></i>Outras Despesas</td>
+                        {% for item in comparison.vehicles_data %}
+                        <td>R$ {{ item.expense_cost|floatformat:2 }} <small class="text-muted">({{ item.expenses_count }} lançamentos)</small></td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Comparative Visual Charts -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Comparativo de Custo Total (TCO)</h5>
+                    <small class="text-muted">Desdobrado em Combustível, Manutenção e Despesas.</small>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="costComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title mb-0"><i class="bi bi-speedometer2 me-2 text-success"></i>Custo por km (R$/km) e Consumo Médio</h5>
+                    <small class="text-muted">Eficiência direta entre os veículos selecionados.</small>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="efficiencyComparisonChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = {{ chart_labels|safe }};
+
+    // Chart 1: Stacked Cost Comparison
+    const ctxCost = document.getElementById('costComparisonChart');
+    if (ctxCost && labels.length > 0) {
+        new Chart(ctxCost, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Combustível (R$)',
+                        data: {{ chart_fuel_cost|safe }},
+                        backgroundColor: '#198754',
+                    },
+                    {
+                        label: 'Manutenção (R$)',
+                        data: {{ chart_maint_cost|safe }},
+                        backgroundColor: '#0d6efd',
+                    },
+                    {
+                        label: 'Despesas (R$)',
+                        data: {{ chart_exp_cost|safe }},
+                        backgroundColor: '#ffc107',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true },
+                    y: {
+                        stacked: true,
+                        title: { display: true, text: 'Total (R$)' }
+                    }
+                }
+            }
+        });
+    }
+
+    // Chart 2: Cost per km and consumption
+    const ctxEff = document.getElementById('efficiencyComparisonChart');
+    if (ctxEff && labels.length > 0) {
+        new Chart(ctxEff, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Custo por km (R$/km)',
+                        data: {{ chart_cost_km|safe }},
+                        backgroundColor: '#6c757d',
+                        yAxisID: 'yCost',
+                    },
+                    {
+                        label: 'Consumo Médio (km/l)',
+                        data: {{ chart_consumption|safe }},
+                        backgroundColor: '#20c997',
+                        yAxisID: 'yConsumption',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    yCost: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'R$/km' }
+                    },
+                    yConsumption: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'km/l' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

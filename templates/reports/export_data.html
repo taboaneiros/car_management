@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Exportar Dados - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'reports:hub' %}">Relatórios</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">Exportar Dados</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h4 mb-0"><i class="bi bi-download me-2 text-primary"></i>Exportar Dados da Frota</h1>
+                        <small class="text-muted">Gere arquivos compatíveis com Excel e ferramentas de análise externa.</small>
+                    </div>
+                    <a href="{% url 'reports:hub' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar
+                    </a>
+                </div>
+
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Entity Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">1. O que deseja exportar?</label>
+                            <div class="row g-2">
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check p-3 border rounded-3 h-100">
+                                        <input class="form-check-input" type="radio" name="entity" id="ent_consolidated" value="consolidated" {% if selected_entity == "consolidated" %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold d-block" for="ent_consolidated">
+                                            <i class="bi bi-collection me-1 text-primary"></i>Extrato Consolidado
+                                            <small class="d-block text-muted fw-normal">Todos os abastecimentos, despesas, manutenções e viagens.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check p-3 border rounded-3 h-100">
+                                        <input class="form-check-input" type="radio" name="entity" id="ent_fuel" value="fuel" {% if selected_entity == "fuel" %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold d-block" for="ent_fuel">
+                                            <i class="bi bi-fuel-pump me-1 text-success"></i>Abastecimentos
+                                            <small class="d-block text-muted fw-normal">Preços, volumes, odômetros e médias de consumo calculadas.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check p-3 border rounded-3 h-100">
+                                        <input class="form-check-input" type="radio" name="entity" id="ent_expenses" value="expenses" {% if selected_entity == "expenses" %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold d-block" for="ent_expenses">
+                                            <i class="bi bi-cash-stack me-1 text-warning"></i>Despesas
+                                            <small class="d-block text-muted fw-normal">Custos fixos e variáveis, categorias e locais.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check p-3 border rounded-3 h-100">
+                                        <input class="form-check-input" type="radio" name="entity" id="ent_maintenance" value="maintenance" {% if selected_entity == "maintenance" %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold d-block" for="ent_maintenance">
+                                            <i class="bi bi-tools me-1 text-primary"></i>Manutenções
+                                            <small class="d-block text-muted fw-normal">Serviços preventivos, corretivos e oficinas.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check p-3 border rounded-3 h-100">
+                                        <input class="form-check-input" type="radio" name="entity" id="ent_trips" value="trips" {% if selected_entity == "trips" %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold d-block" for="ent_trips">
+                                            <i class="bi bi-geo-alt me-1 text-info"></i>Viagens e Percursos
+                                            <small class="d-block text-muted fw-normal">Origens, destinos, quilometragem e custos de viagem.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check p-3 border rounded-3 h-100">
+                                        <input class="form-check-input" type="radio" name="entity" id="ent_reminders" value="reminders" {% if selected_entity == "reminders" %}checked{% endif %}>
+                                        <label class="form-check-label fw-bold d-block" for="ent_reminders">
+                                            <i class="bi bi-bell me-1 text-secondary"></i>Lembretes
+                                            <small class="d-block text-muted fw-normal">Prazos, odômetros limites e histórico de conclusões.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Format Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">2. Formato do Arquivo</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check form-check-inline p-3 border rounded-3 flex-grow-1">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="format" id="fmt_csv" value="csv" checked>
+                                    <label class="form-check-label fw-bold" for="fmt_csv">
+                                        <i class="bi bi-filetype-csv fs-5 me-1 text-success"></i>CSV (.csv)
+                                        <small class="d-block text-muted fw-normal">Com separador ";" e UTF-8 com BOM (ideal para Excel/planilhas).</small>
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline p-3 border rounded-3 flex-grow-1">
+                                    <input class="form-check-input ms-0 me-2" type="radio" name="format" id="fmt_xlsx" value="xlsx">
+                                    <label class="form-check-label fw-bold" for="fmt_xlsx">
+                                        <i class="bi bi-file-earmark-excel fs-5 me-1 text-primary"></i>Excel (.xlsx)
+                                        <small class="d-block text-muted fw-normal">Planilha formatada com abas e cabeçalhos estilizados.</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">3. Filtros (Opcionais)</label>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small" for="exp-vehicle">Veículo:</label>
+                                    <select name="vehicle" id="exp-vehicle" class="form-select">
+                                        <option value="">Todos os veículos</option>
+                                        {% for v in vehicles %}
+                                        <option value="{{ v.id }}">{{ v.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small" for="exp-start">Data Inicial:</label>
+                                    <input type="date" name="date_start" id="exp-start" class="form-control">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small" for="exp-end">Data Final:</label>
+                                    <input type="date" name="date_end" id="exp-end" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid pt-2">
+                            <button type="submit" class="btn btn-primary py-2 fw-semibold">
+                                <i class="bi bi-download me-2"></i>Gerar e Baixar Arquivo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

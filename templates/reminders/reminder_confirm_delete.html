@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Excluir Lembrete - Car Management{% endblock %}
+
+{% block breadcrumbs %}
+<a href="{% url 'reminders:list' %}">Lembretes</a>
+<span class="cm-breadcrumb-sep">/</span>
+<span class="current">Excluir</span>
+{% endblock %}
+
+{% block content %}
+<div class="cm-page">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Confirmar Exclusão</h5>
+                </div>
+                <div class="card-body">
+                    <p>Tem certeza que deseja excluir o lembrete <strong>{{ object.title }}</strong>?</p>
+                    <ul class="text-muted small">
+                        <li>Veículo: <strong>{{ object.vehicle.name }}</strong></li>
+                        {% if object.due_date %}<li>Data limite: <strong>{{ object.due_date|date:"d/m/Y" }}</strong></li>{% endif %}
+                        {% if object.due_odometer %}<li>Odômetro limite: <strong>{{ object.due_odometer }} km</strong></li>{% endif %}
+                    </ul>
+                    <p class="text-danger small mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação não poderá ser desfeita.</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="{% url 'reminders:list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Confirmar Exclusão</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

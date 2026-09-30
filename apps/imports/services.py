@@ -14,9 +14,13 @@ from django.utils.text import slugify
 
 from apps.expenses.models import Expense, ExpenseCategory
 from apps.fuel.models import FuelType, Refueling
+from apps.maintenance.models import Maintenance, MaintenanceType, ServiceType
+from apps.reminders.models import Reminder, ReminderStatus, ReminderType
+from apps.trips.models import Trip, TripPurpose
 from apps.vehicles.models import Vehicle
 
 from .drivvo_parser import map_expense_category, map_fuel_type
+
 
 
 def _quantize_decimal(value: Any, places: int) -> Optional[Decimal]:
@@ -88,6 +92,26 @@ def _resolve_expense_category(user, category_name: str) -> Optional[ExpenseCateg
     return category
 
 
+def _resolve_service_type(user, service_type_name: str) -> Optional[ServiceType]:
+    """
+    Resolve (or create) a ServiceType for the given name.
+    """
+    if not service_type_name:
+        service_type_name = "Manutenção Geral"
+    service_type = ServiceType.objects.filter(
+        Q(user=user) | Q(user=None),
+        name__iexact=service_type_name,
+        is_active=True,
+    ).first()
+    if service_type is None:
+        service_type, _ = ServiceType.objects.get_or_create(
+            user=user,
+            name=service_type_name,
+            defaults={"is_system": False, "is_active": True},
+        )
+    return service_type
+
+
 @transaction.atomic
 def import_drivvo_data(user, parsed_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -96,14 +120,11 @@ def import_drivvo_data(user, parsed_data: Dict[str, Any]) -> Dict[str, Any]:
     Args:
         user: The authenticated user importing the data.
         parsed_data: Dict produced by the Drivvo parser with keys
-            ``vehicles``, ``refuelings``, ``expenses`` and
-            ``unsupported_sections``.
+            ``vehicles``, ``refuelings``, ``expenses``, ``services``,
+            ``reminders`` and ``unsupported_sections``.
 
     Returns:
-        A summary dict with the following keys:
-        ``vehicles_created``, ``vehicles_updated``, ``refuelings_created``,
-        ``refuelings_skipped``, ``expenses_created``, ``expenses_skipped``,
-        ``warnings`` and ``errors``.
+        A summary dict with counts of created/updated/skipped records.
     """
     result = {
         "vehicles_created": 0,
@@ -112,6 +133,12 @@ def import_drivvo_data(user, parsed_data: Dict[str, Any]) -> Dict[str, Any]:
         "refuelings_skipped": 0,
         "expenses_created": 0,
         "expenses_skipped": 0,
+        "maintenances_created": 0,
+        "maintenances_skipped": 0,
+        "reminders_created": 0,
+        "reminders_skipped": 0,
+        "trips_created": 0,
+        "trips_skipped": 0,
         "warnings": [],
         "errors": [],
     }
@@ -326,8 +353,206 @@ def import_drivvo_data(user, parsed_data: Dict[str, Any]) -> Dict[str, Any]:
         result["expenses_created"] += 1
 
     # ------------------------------------------------------------------
-    # 4. Recalculate consumption for the affected vehicles so the dashboard
-    #    and detail pages stay consistent with the imported refuelings.
+    # 4. Services (Maintenance)
+    # ------------------------------------------------------------------
+    for service_data in parsed_data.get("services", []):
+        vehicle_name = (service_data.get("vehicle_name") or "").strip()
+        vehicle = vehicle_map.get(vehicle_name)
+        if vehicle is None:
+            result["warnings"].append(
+                f"Serviço ignorado: veículo '{vehicle_name}' não encontrado no arquivo."
+            )
+            result["maintenances_skipped"] += 1
+            continue
+
+        occurred_at = service_data.get("occurred_at")
+        total_amount = _quantize_decimal(service_data.get("total_amount") or 0, 2)
+        if occurred_at is None:
+            result["errors"].append("Serviço ignorado: data inválida.")
+            result["maintenances_skipped"] += 1
+            continue
+
+        odometer = _to_int(service_data.get("odometer") or 0)
+        service_type = _resolve_service_type(
+            user, service_data.get("service_type_name") or "Manutenção Geral"
+        )
+        workshop_name = (service_data.get("workshop_name") or "")[:100]
+        notes = service_data.get("notes", "")
+
+        already_exists = Maintenance.objects.filter(
+            vehicle=vehicle,
+            occurred_at=occurred_at,
+            odometer=odometer,
+            total_amount=total_amount,
+            service_type=service_type,
+        ).exists()
+        if already_exists:
+            result["warnings"].append(
+                f"Serviço de {occurred_at} ({service_type.name}) já existe; ignorado."
+            )
+            result["maintenances_skipped"] += 1
+            continue
+
+        Maintenance.objects.create(
+            vehicle=vehicle,
+            occurred_at=occurred_at,
+            odometer=odometer,
+            total_amount=total_amount or Decimal("0"),
+            service_type=service_type,
+            maintenance_type=MaintenanceType.PREVENTIVE,
+            workshop_name=workshop_name,
+            notes=notes,
+        )
+        if odometer:
+            vehicle.update_odometer_cache(odometer)
+        result["maintenances_created"] += 1
+
+    # ------------------------------------------------------------------
+    # 5. Reminders
+    # ------------------------------------------------------------------
+    for reminder_data in parsed_data.get("reminders", []):
+        vehicle_name = (reminder_data.get("vehicle_name") or "").strip()
+        vehicle = vehicle_map.get(vehicle_name)
+        if vehicle is None:
+            result["warnings"].append(
+                f"Lembrete ignorado: veículo '{vehicle_name}' não encontrado no arquivo."
+            )
+            result["reminders_skipped"] += 1
+            continue
+
+        title = (reminder_data.get("title") or "").strip()
+        due_date = reminder_data.get("due_date")
+        due_odometer = _to_int(reminder_data.get("due_odometer")) if reminder_data.get("due_odometer") else None
+
+        if not title:
+            title = "Lembrete Automotivo"
+
+        if not due_date and not due_odometer:
+            result["warnings"].append(
+                f"Lembrete '{title}' ignorado: sem data e sem odômetro limite."
+            )
+            result["reminders_skipped"] += 1
+            continue
+
+        already_exists = Reminder.objects.filter(
+            vehicle=vehicle,
+            title=title,
+            due_date=due_date,
+            due_odometer=due_odometer,
+        ).exists()
+        if already_exists:
+            result["warnings"].append(
+                f"Lembrete '{title}' já existe; ignorado."
+            )
+            result["reminders_skipped"] += 1
+            continue
+
+        # Try to associate with matching service type if available
+        matched_service = ServiceType.objects.filter(
+            Q(user=user) | Q(user=None),
+            name__iexact=title,
+            is_active=True,
+        ).first()
+
+        Reminder.objects.create(
+            vehicle=vehicle,
+            title=title,
+            reminder_type=ReminderType.MAINTENANCE,
+            service_type=matched_service,
+            due_date=due_date,
+            due_odometer=due_odometer,
+            status=ReminderStatus.PENDING,
+        )
+        result["reminders_created"] += 1
+
+    # ------------------------------------------------------------------
+    # 6. Trips (Percursos)
+    # ------------------------------------------------------------------
+    for trip_data in parsed_data.get("trips", []):
+        vehicle_name = (trip_data.get("vehicle_name") or "").strip()
+        vehicle = vehicle_map.get(vehicle_name)
+        if vehicle is None:
+            result["warnings"].append(
+                f"Percurso ignorado: veículo '{vehicle_name}' não encontrado no arquivo."
+            )
+            result["trips_skipped"] += 1
+            continue
+
+        started_at = trip_data.get("started_at")
+        start_odometer = (
+            _to_int(trip_data.get("start_odometer"))
+            if trip_data.get("start_odometer") is not None
+            else None
+        )
+
+        if started_at is None:
+            result["errors"].append("Percurso ignorado: data inicial inválida.")
+            result["trips_skipped"] += 1
+            continue
+
+        if timezone.is_naive(started_at):
+            started_at = timezone.make_aware(started_at, timezone.get_current_timezone())
+
+        ended_at = trip_data.get("ended_at")
+        if ended_at is not None and timezone.is_naive(ended_at):
+            ended_at = timezone.make_aware(ended_at, timezone.get_current_timezone())
+
+        end_odometer = (
+            _to_int(trip_data.get("end_odometer"))
+            if trip_data.get("end_odometer") is not None
+            else None
+        )
+
+        if start_odometer is None:
+            start_odometer = vehicle.current_odometer or 0
+
+        already_exists = Trip.objects.filter(
+            vehicle=vehicle,
+            started_at=started_at,
+            start_odometer=start_odometer,
+        ).exists()
+        if already_exists:
+            result["warnings"].append(
+                f"Percurso iniciado em {started_at} (odômetro {start_odometer}) já existe; ignorado."
+            )
+            result["trips_skipped"] += 1
+            continue
+
+        distance = _quantize_decimal(trip_data.get("distance"), 2)
+        rate_per_km = _quantize_decimal(trip_data.get("rate_per_km"), 3)
+        total_cost = _quantize_decimal(trip_data.get("total_cost"), 2)
+        freight_amount = _quantize_decimal(trip_data.get("freight_amount"), 2)
+        origin = (trip_data.get("origin") or "Origem não informada")[:150]
+        destination = (trip_data.get("destination") or "Destino não informado")[:150]
+        purpose = trip_data.get("purpose") or TripPurpose.PERSONAL
+        driver_name = (trip_data.get("driver_name") or "")[:100]
+        notes = trip_data.get("notes") or ""
+
+        Trip.objects.create(
+            vehicle=vehicle,
+            started_at=started_at,
+            ended_at=ended_at,
+            start_odometer=start_odometer,
+            end_odometer=end_odometer,
+            distance=distance,
+            origin=origin,
+            destination=destination,
+            purpose=purpose,
+            rate_per_km=rate_per_km,
+            total_cost=total_cost,
+            driver_name=driver_name,
+            freight_amount=freight_amount,
+            notes=notes,
+        )
+        if end_odometer:
+            vehicle.update_odometer_cache(end_odometer)
+        elif start_odometer:
+            vehicle.update_odometer_cache(start_odometer)
+
+        result["trips_created"] += 1
+
+    # ------------------------------------------------------------------
+    # 7. Recalculate consumption for the affected vehicles
     # ------------------------------------------------------------------
     if vehicles_to_recalculate:
         from apps.fuel.calculators import ConsumptionCalculator

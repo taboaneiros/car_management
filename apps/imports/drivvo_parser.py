@@ -42,7 +42,7 @@ SECTION_MAP = {
 SECTION_MAPPING = SECTION_MAP
 
 # Sections that the current import pipeline supports.
-SUPPORTED_SECTIONS = {"vehicles", "refuelings", "expenses"}
+SUPPORTED_SECTIONS = {"vehicles", "refuelings", "expenses", "services", "reminders", "trips"}
 
 # Vehicle types: Drivvo label -> VehicleType choice value.
 VEHICLE_TYPE_MAPPING = {
@@ -393,6 +393,30 @@ def parse_date(value: Any) -> Optional[Any]:
     return None
 
 
+def parse_datetime(value: Any) -> Optional[datetime]:
+    """
+    Parse a datetime cell into a ``datetime.datetime``.
+
+    Supports ``DD/MM/YYYY HH:MM`` (Drivvo format) as well as common variations.
+    """
+    if not value:
+        return None
+    value = str(value).strip()
+    for fmt in (
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%d/%m/%Y",
+        "%Y-%m-%d",
+    ):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
+
+
 def parse_year(value: Any) -> Optional[int]:
     """Parse a year cell into an int."""
     if not value:
@@ -433,6 +457,31 @@ def map_expense_category(drivvo_category: Any) -> str:
     """
     label = (drivvo_category or "").strip()
     return EXPENSE_CATEGORY_MAPPING.get(label, "Outros")
+
+
+TRIP_PURPOSE_MAPPING = {
+    "Pessoal": "personal",
+    "Trabalho": "business",
+    "Negócios": "business",
+    "Trabalho / Negócios": "business",
+    "Comercial": "business",
+    "Serviço": "business",
+    "Deslocamento": "commute",
+    "Deslocamento diário": "commute",
+    "Frete": "freight",
+    "Carga": "freight",
+    "Frete / Carga": "freight",
+    "Outro": "other",
+    "Outros": "other",
+}
+
+
+def map_trip_purpose(drivvo_purpose: Any) -> str:
+    """Map a Drivvo trip purpose label to a TripPurpose choice value."""
+    if not drivvo_purpose:
+        return "personal"
+    label = str(drivvo_purpose).strip()
+    return TRIP_PURPOSE_MAPPING.get(label, "personal")
 
 
 # ---------------------------------------------------------------------------
@@ -548,6 +597,88 @@ def extract_expenses(sections: Dict[str, Any]) -> List[Dict[str, Any]]:
             }
         )
     return expenses
+
+
+def extract_services(sections: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract structured maintenance/service data from parsed sections."""
+    services = []
+    for row in _section_rows(sections, "services"):
+        services.append(
+            {
+                "vehicle_name": _get(row, "Nome do veículo", "Nome", "Vehicle"),
+                "odometer": parse_decimal(
+                    _get(row, "Odômetro (km)", "Odômetro km", "Odômetro", "Odometer")
+                )
+                or 0,
+                "occurred_at": parse_date(_get(row, "Data", "Date")),
+                "total_amount": parse_decimal(
+                    _get(row, "Valor total", "Valor", "Total", "Amount")
+                )
+                or Decimal("0"),
+                "service_type_name": _get(
+                    row, "Tipo de serviço", "Tipo", "Service Type", "Serviço"
+                ),
+                "workshop_name": _get(
+                    row, "Local do serviço", "Local", "Oficina", "Workshop", "Vendor"
+                ),
+                "notes": _get(row, "Observação", "Observações", "Notes"),
+            }
+        )
+    return services
+
+
+def extract_reminders(sections: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract structured reminder data from parsed sections."""
+    reminders = []
+    for row in _section_rows(sections, "reminders"):
+        reminders.append(
+            {
+                "vehicle_name": _get(row, "Nome do veículo", "Nome", "Vehicle"),
+                "title": _get(row, "Tipo", "Lembrete", "Title", "Tipo de lembrete"),
+                "due_date": parse_date(_get(row, "Data", "Date")),
+                "due_odometer": parse_decimal(
+                    _get(row, "Odômetro (km)", "Odômetro km", "Odômetro", "Odometer")
+                ),
+            }
+        )
+    return reminders
+
+
+def extract_trips(sections: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract structured trip/route data from parsed sections."""
+    trips = []
+    for row in _section_rows(sections, "trips"):
+        trips.append(
+            {
+                "vehicle_name": _get(row, "Nome do veículo", "Nome", "Vehicle"),
+                "started_at": parse_datetime(_get(row, "Data inicial", "Data Inicial", "Data", "Start Date")),
+                "ended_at": parse_datetime(_get(row, "Data final", "Data Final", "End Date")),
+                "start_odometer": parse_decimal(
+                    _get(row, "Odômetro inicial", "Odômetro Inicial", "Odômetro", "Start Odometer")
+                ),
+                "end_odometer": parse_decimal(
+                    _get(row, "Odômetro final", "Odômetro Final", "End Odometer")
+                ),
+                "distance": parse_decimal(
+                    _get(row, "Distância (km)", "Distância km", "Distância", "Distance")
+                ),
+                "rate_per_km": parse_decimal(
+                    _get(row, "Valor km", "Valor / km", "Taxa km", "Rate per km")
+                ),
+                "total_cost": parse_decimal(
+                    _get(row, "Total", "Valor total", "Valor", "Total Cost")
+                ),
+                "origin": _get(row, "Origem", "Origin") or "Origem não informada",
+                "destination": _get(row, "Destino", "Destination") or "Destino não informado",
+                "purpose": map_trip_purpose(_get(row, "Motivo", "Finalidade", "Purpose")),
+                "driver_name": _get(row, "Motorista", "Driver"),
+                "freight_amount": parse_decimal(
+                    _get(row, "Valor do frete", "Frete", "Freight")
+                ),
+                "notes": _get(row, "Observação", "Observações", "Notes"),
+            }
+        )
+    return trips
 
 
 # ---------------------------------------------------------------------------
